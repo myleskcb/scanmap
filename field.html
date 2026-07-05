@@ -180,7 +180,7 @@
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
 let me=null,signup=false,L='en',job=null,stops=[],map=null,markers=[],active=null,scanner=null,
-    sel={structure:null,photoBlob:null,scannedStop:null},todayCount=0,myAssignment=null,geoWatch=null;
+    sel={structure:null,photoBlob:null,scannedStop:null},todayCount=0,myAssignment=null,geoWatch=null,scanMode='placement';
 const GEOFENCE_M=80; // 0.05 mi ≈ 80 meters
 function distM(lat1,lng1,lat2,lng2){
   const R=6371000,r=x=>x*Math.PI/180,dLat=r(lat2-lat1),dLng=r(lng2-lng1);
@@ -224,6 +224,20 @@ const T={
   setpickup:{en:'📦 Set flyer pickup / shipping',es:'📦 Elegir recogida / envío de volantes'},
   pickupset:{en:'Pickup / shipping saved — your manager has the details',es:'Recogida / envío guardado — tu gerente tiene los detalles'},
   perflyer:{en:'/flyer',es:'/volante'},
+  available:{en:'[ AVAILABLE JOBS ]',es:'[ TRABAJOS DISPONIBLES ]'},
+  activejobs:{en:'[ MY ACTIVE JOBS ]',es:'[ MIS TRABAJOS ACTIVOS ]'},
+  viewjob:{en:'View route & details →',es:'Ver ruta y detalles →'},
+  apply:{en:'Apply for this job',es:'Aplicar a este trabajo'},
+  appliedtag:{en:'APPLIED — awaiting approval',es:'APLICADO — esperando aprobación'},
+  rejectedtag:{en:'Not selected this time',es:'No seleccionado esta vez'},
+  confirmpickup:{en:'📦 Scan any flyer QR to confirm pickup',es:'📦 Escanea cualquier QR para confirmar recogida'},
+  pickupscanhint:{en:'Scan any QR code from your printed batch. This confirms you have the flyers in hand — then your route unlocks.',
+                  es:'Escanea cualquier código QR de tu lote impreso. Esto confirma que tienes los volantes — luego se desbloquea tu ruta.'},
+  pickupmanual:{en:'📦 Confirm flyer pickup',es:'📦 Confirmar recogida de volantes'},
+  pickupok:{en:'Pickup confirmed — route unlocked',es:'Recogida confirmada — ruta desbloqueada'},
+  total:{en:'total',es:'total'},
+  applysent:{en:'Application sent — you will see it here once approved',es:'Aplicación enviada — la verás aquí al ser aprobada'},
+  noavail:{en:'No open jobs right now. Check back soon.',es:'No hay trabajos abiertos ahora. Vuelve pronto.'},
 };
 const structures=[
   ['community_board',{en:'Community board',es:'Tablero comunitario'}],
@@ -277,28 +291,49 @@ async function loadToday(){
 }
 
 /* ── jobs list ── */
+/* ── job board: available (browse + apply) and active (accepted/picked_up) ── */
 async function loadJobs(){
-  const {data:asg}=await sb.from('assignments')
-    .select('flyers_assigned,campaigns(id,name,client_type,mode,status,center_lat,center_lng)')
-    .eq('worker_id',me.id);
   const list=$('j-list');list.innerHTML='';
-  const activeJobs=(asg||[]).filter(a=>a.campaigns&&a.campaigns.status==='active');
-  if(!activeJobs.length){list.innerHTML=`<div class="card mono" style="color:var(--mute);font-size:13px">${t('nojobs')}</div>`;return;}
-  for(const a of activeJobs){
-    const c=a.campaigns;
-    const {count:total}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id);
-    const {count:done}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id).eq('status','verified');
-    const pct=total?Math.round(done/total*100):0;
-    const pay=c.pay_per_flyer_cents?`<span style="color:var(--green)">$${(c.pay_per_flyer_cents/100).toFixed(2)}${t('perflyer')}</span> · `:'';
-    list.insertAdjacentHTML('beforeend',`<div class="card">
-      <div style="display:flex;justify-content:space-between;gap:10px">
-        <b>${esc(c.name)}</b><span class="tag green">${c.mode}</span></div>
-      <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
-        ${pay}${a.flyers_assigned} ${t('flyers')} · ${done||0}/${total||0} ${t('stopsw')}</div>
-      <div class="bar"><div style="width:${pct}%"></div></div>
-      <button class="primary" style="margin-top:12px" onclick='openJob(${JSON.stringify(c.id)})'>${t('open')}</button>
-    </div>`);
+  const [{data:camps},{data:apps}]=await Promise.all([
+    sb.from('campaigns').select('*').eq('status','active'),
+    sb.from('assignments').select('*').eq('worker_id',me.id),
+  ]);
+  const mine={}; (apps||[]).forEach(a=>mine[a.campaign_id]=a);
+  const activeJobs=(camps||[]).filter(c=>['accepted','picked_up'].includes(mine[c.id]?.status));
+  const openJobs=(camps||[]).filter(c=>!mine[c.id]||['applied','rejected'].includes(mine[c.id]?.status));
+
+  if(activeJobs.length){
+    list.insertAdjacentHTML('beforeend',`<div class="mono" style="font-size:11px;color:var(--green);letter-spacing:.12em;margin:2px 0 10px">${t('activejobs')}</div>`);
+    for(const c of activeJobs) list.insertAdjacentHTML('beforeend',await jobCard(c,mine[c.id]));
   }
+  list.insertAdjacentHTML('beforeend',`<div class="mono" style="font-size:11px;color:var(--green);letter-spacing:.12em;margin:14px 0 10px">${t('available')}</div>`);
+  if(!openJobs.length)
+    list.insertAdjacentHTML('beforeend',`<div class="card mono" style="color:var(--mute);font-size:13px">${t('noavail')}</div>`);
+  for(const c of openJobs) list.insertAdjacentHTML('beforeend',await jobCard(c,mine[c.id]));
+}
+async function jobCard(c,app){
+  const {count:total}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id);
+  const {count:done}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id).eq('status','verified');
+  const pay=(c.pay_per_flyer_cents||0)/100, payout=(pay*c.flyer_count).toFixed(2);
+  const pct=total?Math.round((done||0)/total*100):0;
+  const st=app?.status;
+  const statusTag=st==='applied'?`<span class="tag" style="border-color:var(--amber);color:var(--amber)">${t('appliedtag')}</span>`
+    :st==='rejected'?`<span class="tag">${t('rejectedtag')}</span>`
+    :st==='accepted'?`<span class="tag" style="border-color:var(--amber);color:var(--amber)">📦</span>`
+    :st==='picked_up'?`<span class="tag green">▶</span>`:'';
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+      <b>${esc(c.name)}</b>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="mono" style="color:var(--green);font-weight:700;font-size:20px">$${payout}</div>
+        <div class="mono" style="font-size:10px;color:var(--mute)">$${pay.toFixed(2)}${t('perflyer')} · ${t('total')}</div>
+      </div></div>
+    <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
+      ${c.flyer_count} ${t('flyers')} · ${total||0} ${t('stopsw')} · ${c.mode} ${statusTag?'· ':''}${statusTag}</div>
+    ${['accepted','picked_up'].includes(st)?`<div class="bar"><div style="width:${pct}%"></div></div>`:''}
+    <button class="${st==='applied'||st==='rejected'?'':'primary'}" style="margin-top:12px"
+      onclick='openJob(${JSON.stringify(c.id)})'>${['accepted','picked_up'].includes(st)?t('open'):t('viewjob')}</button>
+  </div>`;
 }
 
 /* ── job map ── */
@@ -340,17 +375,49 @@ function drawMarkers(){
 }
 function drawActions(){
   const a=$('m-actions');a.innerHTML='';
-  if(myAssignment&&!myAssignment.fulfillment_method)
-    a.innerHTML+=`<button onclick="$('fsheet').classList.remove('hide')">${t('setpickup')}</button>`;
+  const st=myAssignment?.status;
+  const payout=(((job.pay_per_flyer_cents||0)*job.flyer_count)/100).toFixed(2);
+  // browsing → apply (fulfillment info collected during application)
+  if(!myAssignment){
+    a.innerHTML=`<button class="primary" onclick="$('fsheet').classList.remove('hide')">${t('apply')} — $${payout}</button>`;
+    return;
+  }
+  if(st==='applied'){a.innerHTML=`<div class="mono" style="text-align:center;color:var(--amber);padding:8px">⏳ ${t('appliedtag')}</div>`;return;}
+  if(st==='rejected'){a.innerHTML=`<div class="mono" style="text-align:center;color:var(--mute);padding:8px">${t('rejectedtag')}</div>`;return;}
+  // accepted → must confirm flyer pickup before the route unlocks
+  if(st==='accepted'){
+    a.innerHTML=job.mode==='optimized'
+      ?`<button class="primary" onclick="startPickupScan()">${t('confirmpickup')}</button>`
+      :`<button class="primary" onclick="confirmPickupManual()">${t('pickupmanual')}</button>`;
+    return;
+  }
+  // picked_up → normal placement flow
   if(job.mode==='freestyle'){
-    a.innerHTML+=`<button class="primary" onclick="startFreestyle()">${t('freestyle')}</button>`;
+    a.innerHTML=`<button class="primary" onclick="startFreestyle()">${t('freestyle')}</button>`;
   }else{
     const next=stops.find(s=>s.status==='todo');
-    a.innerHTML+=next
+    a.innerHTML=next
       ?`<button class="primary" onclick="startStop('${next.id}')">${t('startnext')} — ${esc(next.label)}</button>`
       :`<div class="mono" style="text-align:center;color:var(--green);padding:6px">✓ ${t('jobdone')}</div>`;
   }
 }
+
+/* ── pickup confirmation: scan any QR from the printed batch ── */
+function startPickupScan(){
+  scanMode='pickup';
+  $('p-stoplabel').textContent='📦';
+  $('p-gate').classList.add('hide');$('p-struct').classList.add('hide');$('p-photo').classList.add('hide');
+  $('p-scan').classList.remove('hide');
+  document.querySelector('#p-scan [data-t="scanhint"]').textContent=t('pickupscanhint');
+  setSteps(1);openSheet();startScanner();
+}
+async function confirmPickupDone(){
+  const {error}=await sb.from('assignments').update({status:'picked_up'}).eq('id',myAssignment.id);
+  if(error)return toast(error.message);
+  myAssignment.status='picked_up';
+  closeSheet();flash('flash-ok');toast(t('pickupok'));drawActions();
+}
+async function confirmPickupManual(){await confirmPickupDone();}
 
 /* ── print fulfillment (pickup store or shipping) ── */
 async function findStores(){
@@ -375,20 +442,27 @@ async function findStores(){
     if(!feats.length)$('storelist').innerHTML='<div class="mono" style="color:var(--amber);font-size:12px">No stores found nearby — use shipping below</div>';
   },()=>toast('Enable location access to find stores'));
 }
+async function submitFulfillment(fields){
+  if(myAssignment){ // already on the job — just updating pickup/shipping
+    const {error}=await sb.from('assignments').update(fields).eq('id',myAssignment.id);
+    if(error)return toast(error.message);
+    Object.assign(myAssignment,fields);
+    $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
+  }else{ // this IS the application — apply with fulfillment info attached
+    const {data,error}=await sb.from('assignments').insert({
+      campaign_id:job.id,worker_id:me.id,status:'applied',
+      flyers_assigned:job.flyer_count,...fields}).select().single();
+    if(error)return toast(error.message);
+    myAssignment=data;
+    $('fsheet').classList.add('hide');toast(t('applysent'));drawActions();
+  }
+}
 async function savePickup(name,address){
-  const {error}=await sb.from('assignments').update({fulfillment_method:'pickup',
-    pickup_location:name,pickup_address:address,shipping_address:null}).eq('id',myAssignment.id);
-  if(error)return toast(error.message);
-  myAssignment.fulfillment_method='pickup';
-  $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
+  submitFulfillment({fulfillment_method:'pickup',pickup_location:name,pickup_address:address,shipping_address:null});
 }
 async function saveShipping(){
   const addr=$('ship-addr').value.trim(); if(!addr)return;
-  const {error}=await sb.from('assignments').update({fulfillment_method:'shipping',
-    shipping_address:addr,pickup_location:null,pickup_address:null}).eq('id',myAssignment.id);
-  if(error)return toast(error.message);
-  myAssignment.fulfillment_method='shipping';
-  $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
+  submitFulfillment({fulfillment_method:'shipping',shipping_address:addr,pickup_location:null,pickup_address:null});
 }
 
 /* ── placement flow ── */
@@ -404,6 +478,8 @@ function setSteps(n){['st1','st2','st3'].forEach((id,i)=>$(id).classList.toggle(
 function openSheet(){$('sheet').classList.remove('hide');}
 function closeSheet(){$('sheet').classList.add('hide');stopScanner();clearGate();}
 function startStop(stopId){
+  scanMode='placement';
+  document.querySelector('#p-scan [data-t="scanhint"]').textContent=t('scanhint');
   active=stops.find(s=>s.id===stopId);
   sel={structure:null,photoBlob:null,scannedStop:null};
   $('p-stoplabel').textContent=`${t('placed')} · ${active.label}`;
@@ -442,9 +518,15 @@ function startScanner(){
   stopScanner();
   scanner=new Html5Qrcode('qr-region');
   scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:230,height:230}},decoded=>{
-    // must be this campaign's QR; on optimized routes it must also be this exact stop
-    const u=new URL(decoded,location.href);
+    let u; try{u=new URL(decoded,location.href);}catch{return;}
     const okCampaign=u.searchParams.get('c')===job.id;
+    if(scanMode==='pickup'){
+      // any QR from this campaign's batch proves they're holding the flyers
+      if(okCampaign){stopScanner();confirmPickupDone();}
+      else{$('flash-bad-msg').textContent=t('wrongqr');flash('flash-bad');}
+      return;
+    }
+    // placement mode: must be this campaign; optimized routes must match this exact stop
     const okStop=job.mode==='freestyle'||u.searchParams.get('s')===active.id;
     if(okCampaign&&okStop){
       sel.scannedStop=u.searchParams.get('s');

@@ -222,10 +222,8 @@
 
       <div class="grid2">
         <div class="card">
-          <h2 style="margin-top:0">Assign worker</h2>
-          <label>Worker</label><select id="d-worker"></select>
-          <label>Flyers assigned</label><input id="d-flyers" type="number" value="50">
-          <div class="row" style="margin-top:14px"><button class="primary" onclick="assignWorker()">Assign</button></div>
+          <h2 style="margin-top:0">Applications</h2>
+          <div class="sub" style="margin-bottom:6px">Workers find this job on their board once the campaign is Active. They review the route map and payout, apply with their print pickup or shipping details attached, and you accept or reject here. Accepted workers scan any QR from the printed batch to confirm pickup — then their route unlocks.</div>
           <div id="d-assigned" class="sub" style="margin-top:12px"></div>
         </div>
         <div class="card" style="padding:0;max-height:320px;overflow:auto">
@@ -399,11 +397,8 @@ async function openCampaign(id){
     ` · pay $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} · print $${((c.cogs_per_flyer_cents||0)/100).toFixed(2)}`+
     ` · <span style="color:${profitPer>=0?'var(--green)':'var(--red)'}">profit $${(profitPer/100).toFixed(2)}/flyer</span>`;
   $('d-activate').textContent=c.status==='active'?'Mark done':'Activate';
-  // workers dropdown
-  const {data:wk}=await sb.from('profiles').select('id,full_name').eq('role','worker');
-  $('d-worker').innerHTML=(wk||[]).map(w=>`<option value="${w.id}">${esc(w.full_name||'(no name)')}</option>`).join('')||'<option>No workers yet</option>';
   const {data:asg}=await sb.from('assignments')
-    .select('worker_id,flyers_assigned,fulfillment_method,pickup_location,pickup_address,shipping_address,profiles(full_name)')
+    .select('id,worker_id,status,flyers_assigned,fulfillment_method,pickup_location,pickup_address,shipping_address,profiles(full_name)')
     .eq('campaign_id',id);
   const {data:allPlc}=await sb.from('placements').select('worker_id').eq('campaign_id',id);
   const perWorker={}; (allPlc||[]).forEach(p=>perWorker[p.worker_id]=(perWorker[p.worker_id]||0)+1);
@@ -414,12 +409,20 @@ async function openCampaign(id){
       ?`📦 Pickup: <b>${esc(a.pickup_location)}</b><br><span style="color:var(--mute)">${esc(a.pickup_address)}</span>`
       :a.fulfillment_method==='shipping'
       ?`📦 Ship to: <b>${esc(a.shipping_address)}</b>`
-      :`<span style="color:var(--amber)">📦 Worker hasn't set print pickup/shipping yet</span>`;
+      :`<span style="color:var(--amber)">📦 No print pickup/shipping set yet</span>`;
+    const stTag=a.status==='applied'?'<span class="tag amber">APPLIED</span>'
+      :a.status==='accepted'?'<span class="tag green">ACCEPTED — awaiting flyer pickup</span>'
+      :a.status==='picked_up'?'<span class="tag green">HAS FLYERS — on route</span>'
+      :'<span class="tag gray">REJECTED</span>';
+    const btns=a.status==='applied'
+      ?`<div class="row" style="margin-top:8px">
+          <button class="primary" style="padding:6px 14px" onclick="setAppStatus('${a.id}','accepted')">Accept</button>
+          <button class="danger" style="padding:6px 14px" onclick="setAppStatus('${a.id}','rejected')">Reject</button></div>`:'';
     return `<div style="border-top:1px solid var(--line);padding:10px 0;line-height:1.7">
-      <b>${esc(a.profiles?.full_name)}</b> · ${a.flyers_assigned} flyers assigned<br>
-      ${done} verified × $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} = <b style="color:var(--green)">$${owed.toFixed(2)} owed</b><br>
-      ${ful}</div>`;
-  }).join('')||'No one assigned yet.';
+      <b>${esc(a.profiles?.full_name)}</b> ${stTag}<br>
+      ${a.flyers_assigned} flyers · ${done} verified × $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} = <b style="color:var(--green)">$${owed.toFixed(2)} owed</b><br>
+      ${ful}${btns}</div>`;
+  }).join('')||'No applications yet — workers see this job on their board once the campaign is Active.';
   // stops + scans + placements
   const [{data:stops},{data:scans},{data:plc}]=await Promise.all([
     sb.from('stops').select('*').eq('campaign_id',id).order('seq'),
@@ -448,13 +451,10 @@ async function toggleStatus(){
   await sb.from('campaigns').update({status:next}).eq('id',currentCampaign.id);
   openCampaign(currentCampaign.id); toast('Campaign '+next);
 }
-async function assignWorker(){
-  const wid=$('d-worker').value; if(!wid)return;
-  const {error}=await sb.from('assignments').upsert(
-    {campaign_id:currentCampaign.id,worker_id:wid,flyers_assigned:+$('d-flyers').value||0},
-    {onConflict:'campaign_id,worker_id'});
+async function setAppStatus(appId,status){
+  const {error}=await sb.from('assignments').update({status}).eq('id',appId);
   if(error)return toast(error.message);
-  toast('Worker assigned'); openCampaign(currentCampaign.id);
+  toast('Application '+status); openCampaign(currentCampaign.id);
 }
 
 /* ── QR BATCH (ZIP of plain QR PNGs + CSV) ── */
