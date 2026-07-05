@@ -219,9 +219,10 @@
     <div class="qrrow">
       <canvas id="fl-qr" class="qr" width="86" height="86"></canvas>
       <div class="qrmeta">
-        LOCATION <b>8H</b><br>
+        LOCATION <b>8A</b> · CAMPAIGN A<br>
         2ND &amp; PARK AVE<br>
-        SCANS TODAY: <span id="fl-count">83</span>
+        SCANS TODAY: <span id="fl-count">83</span><br>
+        <span style="font-size:9px;letter-spacing:.06em">SCANMAP.IO · REMOVED &amp; RECYCLED AFTER 60 DAYS</span>
       </div>
     </div>
     <img id="fl-map" class="flmap" alt="Coverage map — Belmont Shore streets">
@@ -242,8 +243,13 @@
 <section class="dark" id="demo" style="padding-top:20px"><div class="wrap">
   <div class="mapshell">
     <div class="mapbar">
-      <span><span class="dot"></span>SAMPLE CAMPAIGN — E 2ND ST, BELMONT SHORE</span>
-      <span>12 locations · <b style="color:var(--green)" id="lv-count">…</b> scans ·
+      <span><span class="dot"></span>
+        <select id="lv-camp" class="periodsel">
+          <option value="A" selected>CAMPAIGN A — CREATIVE A</option>
+          <option value="B">CAMPAIGN B — CREATIVE B</option>
+          <option value="C">CAMPAIGN C — CREATIVE C</option>
+        </select> · BELMONT SHORE</span>
+      <span><span id="lv-locs">12</span> locations · <b style="color:var(--green)" id="lv-count">…</b> scans ·
         <select id="lv-period" class="periodsel">
           <option value="0.14">PAST 24 HRS</option>
           <option value="1" selected>PAST 7 DAYS</option>
@@ -392,32 +398,44 @@
   setTimeout(()=>{ tick(); setInterval(tick, 5*60*1000); }, 17*1000);
 })();
 
-/* ── Live sample map: Belmont Shore corners, geocoder-snapped to intersections ── */
+/* ── Live sample map: campaigns A/B/C, corner-snapped pins, switchable data ── */
 (function(){
   mapboxgl.accessToken=MAPBOX_TOKEN;
   const CENTER=[-118.1385,33.7590];
-  // [label, "Street A & Street B", fallback lng, fallback lat, scans past-7-days, conv%]
-  const raw=[
-    ["1A","Ocean Blvd & Granada Ave",   -118.14220,33.75530, 95, 3.1],
-    ["2B","E 3rd St & Termino Ave",     -118.15200,33.76330, 28, 1.1],
-    ["3C","E 2nd St & Glendora Ave",    -118.14345,33.75980,295, 8.8],
-    ["4D","E 1st St & Argonne Ave",     -118.14095,33.75840,120, 4.2],
-    ["5E","Division St & La Verne Ave", -118.13970,33.75720, 60, 2.4],
-    ["6F","E 2nd St & St Joseph Ave",   -118.13220,33.75755,540,14.6],
-    ["7G","E 2nd St & Corona Ave",      -118.12970,33.75705,830,19.3],
-    ["8H","E 2nd St & Park Ave",        -118.13720,33.75855,890,21.0],
-    ["9I","E 1st St & Roycroft Ave",    -118.13345,33.75690,380,11.5],
-    ["10J","E Colorado St & Roycroft Ave",-118.13730,33.76400,180, 6.0],
-    ["11K","Ocean Blvd & Bay Shore Ave",-118.12620,33.75430,340,10.2],
-    ["12L","E 2nd St & Livingston Dr",  -118.14600,33.76035,610,15.8],
-  ];
-  const max=Math.max(...raw.map(s=>s[4]));
+  // per-campaign sample data: [label, "Street A & Street B", fallback lng, fallback lat, 7-day scans, conv%]
+  const CAMPAIGNS={
+    A:[["1A","Ocean Blvd & Granada Ave",-118.14220,33.75530, 95, 3.1],
+       ["2A","E 3rd St & Termino Ave",-118.15200,33.76330, 28, 1.1],
+       ["3A","E 2nd St & Glendora Ave",-118.14345,33.75980,295, 8.8],
+       ["4A","E 1st St & Argonne Ave",-118.14095,33.75840,120, 4.2],
+       ["5A","Division St & La Verne Ave",-118.13970,33.75720, 60, 2.4],
+       ["6A","E 2nd St & St Joseph Ave",-118.13220,33.75755,540,14.6],
+       ["7A","E 2nd St & Corona Ave",-118.12970,33.75705,830,19.3],
+       ["8A","E 2nd St & Park Ave",-118.13720,33.75855,890,21.0],
+       ["9A","E 1st St & Roycroft Ave",-118.13345,33.75690,380,11.5],
+       ["10A","E Colorado St & Roycroft Ave",-118.13730,33.76400,180, 6.0],
+       ["11A","Ocean Blvd & Bay Shore Ave",-118.12620,33.75430,340,10.2],
+       ["12A","E 2nd St & Livingston Dr",-118.14600,33.76035,610,15.8]],
+    B:[["1B","E 2nd St & Covina Ave",-118.14468,33.76005,720,17.2],
+       ["2B","E 2nd St & Argonne Ave",-118.14095,33.75930,490,12.8],
+       ["3B","E 2nd St & Quincy Ave",-118.13470,33.75805,260, 7.9],
+       ["4B","E 1st St & Nieto Ave",-118.13845,33.75790, 90, 3.4],
+       ["5B","Ocean Blvd & Prospect Ave",-118.13595,33.75560,300, 9.6],
+       ["6B","E Colorado St & Park Ave",-118.13740,33.76400,140, 5.1],
+       ["7B","E 2nd St & Santa Ana Ave",-118.13095,33.75730,480,13.5],
+       ["8B","E 2nd St & Bay Shore Ave",-118.12720,33.75655, 55, 2.2]],
+    C:[["1C","Ocean Blvd & Argonne Ave",-118.14095,33.75545,530,15.9],
+       ["2C","Ocean Blvd & Nieto Ave",-118.13845,33.75510,410,12.1],
+       ["3C","E 1st St & Park Ave",-118.13720,33.75765,300, 9.8],
+       ["4C","Division St & Glendora Ave",-118.14345,33.75700,150, 5.6],
+       ["5C","E 2nd St & Granada Ave",-118.14220,33.75955, 90, 3.3],
+       ["6C","E 3rd St & Roycroft Ave",-118.13730,33.76350, 40, 1.5]],
+  };
   const ago=["18m","42m","1h","2h","3h","5h"];
-  let period=1, stops=raw;
+  let cur='A', period=1, stops=CAMPAIGNS.A;
 
-  // snap each pin to the real intersection via geocoder (cached in localStorage)
-  async function snap(){
-    const key='sm_snap_v4';
+  async function snap(letter){
+    const raw=CAMPAIGNS[letter], key='sm_snap_v5_'+letter;
     try{const c=JSON.parse(localStorage.getItem(key)||'null');if(c&&c.length===raw.length)return c;}catch(e){}
     const out=await Promise.all(raw.map(async s=>{
       try{
@@ -433,17 +451,20 @@
     try{localStorage.setItem(key,JSON.stringify(out));}catch(e){}
     return out;
   }
+  const maxOf=()=>Math.max(...stops.map(s=>s[4]));
   function geojson(){
+    const max=maxOf();
     return {type:"FeatureCollection",features:stops.map((s,i)=>({
       type:"Feature",geometry:{type:"Point",coordinates:[s[2],s[3]]},
       properties:{label:s[0],name:s[1],scans:Math.round(s[4]*period),conv:s[5],
         w:s[4]/max,last:ago[i%ago.length]}}))};
   }
-  function total(){
+  function totals(){
     document.getElementById('lv-count').textContent=
       stops.reduce((t,s)=>t+Math.round(s[4]*period),0).toLocaleString();
+    document.getElementById('lv-locs').textContent=stops.length;
   }
-  total();
+  totals();
 
   const map=new mapboxgl.Map({container:'heromap',style:'mapbox://styles/mapbox/dark-v11',
     center:CENTER,zoom:14.3,pitch:0,bearing:0}); // eagle view, locked
@@ -451,16 +472,15 @@
     .forEach(k=>map[k].disable());
 
   map.on('load',async()=>{
-    stops=await snap(); total();
-    // flyer static map: red pin exactly on the snapped 2nd & Park corner
-    const park=stops.find(s=>s[0]==='8H');
+    stops=await snap('A'); totals();
+    // flyer static map: red pin exactly on the snapped 2nd & Park corner (8A)
+    const park=stops.find(s=>s[0]==='8A');
     document.getElementById('fl-map').src=
       'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/'+
       'pin-l+ff3b3b('+park[2]+','+park[3]+')/'+park[2]+','+park[3]+
       ',16.1,0/640x400@2x?access_token='+MAPBOX_TOKEN;
 
     map.addSource('demo',{type:'geojson',data:geojson()});
-    // heat: green (quiet) -> yellow (some) -> orange (busy) -> red (heavy)
     map.addLayer({id:'heat',type:'heatmap',source:'demo',paint:{
       'heatmap-weight':['get','w'],
       'heatmap-intensity':1.7,
@@ -498,10 +518,14 @@
     map.on('mouseleave','pts',()=>{map.getCanvas().style.cursor='';pop.remove();});
     map.on('click','pts',showPop);
 
-    // time period selector
     document.getElementById('lv-period').addEventListener('change',ev=>{
       period=parseFloat(ev.target.value);
-      total(); map.getSource('demo').setData(geojson());
+      totals(); map.getSource('demo').setData(geojson());
+    });
+    document.getElementById('lv-camp').addEventListener('change',async ev=>{
+      cur=ev.target.value; pop.remove();
+      stops=await snap(cur);
+      totals(); map.getSource('demo').setData(geojson());
     });
   });
 })();

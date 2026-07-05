@@ -160,6 +160,8 @@
           </select>
           <label>Destination URL (where a scan sends people)</label>
           <input id="c-url" placeholder="https://your-landing-page.com">
+          <label>Campaign letter (each campaign owns one letter — stops become 1A, 2A, 3A…)</label>
+          <select id="c-letter" onchange="relabelPins()"></select>
           <label>Flyer count</label><input id="c-count" type="number" value="50" oninput="calcEcon()">
           <label>Price charged to client (total)</label><input id="c-price" value="$350.00" oninput="calcEcon()">
           <label>Worker pay per flyer</label><input id="c-pay" value="$0.75" oninput="calcEcon()">
@@ -288,7 +290,18 @@ const $=id=>document.getElementById(id);
 const toast=m=>{const t=document.createElement('div');t.className='toast';t.textContent=m;
   document.body.appendChild(t);setTimeout(()=>t.remove(),3200)};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const labelFor=i=>`${i+1}${String.fromCharCode(65+(i%26))}`; // 1A 2B 3C … numbering scheme
+const labelFor=i=>`${i+1}${($('c-letter')&&$('c-letter').value)||'A'}`; // 1A 2A 3A … one letter per campaign
+async function fillLetterSelect(){
+  const {data}=await sb.from('campaigns').select('letter').in('status',['draft','active']);
+  const used=new Set((data||[]).map(c=>c.letter));
+  const sel=$('c-letter'); sel.innerHTML='';
+  for(let i=0;i<26;i++){
+    const L=String.fromCharCode(65+i);
+    sel.insertAdjacentHTML('beforeend',`<option value="${L}" ${used.has(L)?'':''}>${L}${used.has(L)?' — in use':''}</option>`);
+  }
+  for(let i=0;i<26;i++){const L=String.fromCharCode(65+i);if(!used.has(L)){sel.value=L;break;}}
+}
+function relabelPins(){newPins.forEach((p,i)=>{p.label=labelFor(i);p.mk.getElement().textContent=p.label;});}
 const ago=t=>{const s=(Date.now()-new Date(t))/1e3;return s<60?`${s|0}s ago`:s<3600?`${s/60|0}m ago`:s<86400?`${s/3600|0}h ago`:`${s/86400|0}d ago`};
 
 /* ── AUTH ── */
@@ -323,7 +336,7 @@ function go(v){
   $('v-'+v).classList.remove('hide');
   if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers();
   if(v==='analytics')loadAnalyticsView();
-  if(v==='new'){setTimeout(initMap,50);calcEcon();}
+  if(v==='new'){setTimeout(initMap,50);calcEcon();fillLetterSelect();}
 }
 
 /* ── DASHBOARD ── */
@@ -370,7 +383,7 @@ async function loadCamps(){
   (camps||[]).forEach(c=>{
     const placed=(c.stops||[]).filter(s=>s.status!=='todo').length;
     tb.insertAdjacentHTML('beforeend',`<tr>
-      <td><b>${esc(c.name)}</b></td><td>${esc(c.client_type)}</td>
+      <td><span class="tag green" style="margin-right:8px">${esc(c.letter||'A')}</span><b>${esc(c.name)}</b></td><td>${esc(c.client_type)}</td>
       <td>${c.flyer_count}</td><td>${placed}/${(c.stops||[]).length}</td>
       <td style="color:var(--green)">${scanCount[c.id]||0}</td>
       <td><span class="tag ${c.status==='active'?'green':c.status==='draft'?'gray':'amber'}">${c.status}</span></td>
@@ -412,6 +425,7 @@ async function saveCampaign(){
     price_cents:money($('c-price').value),
     pay_per_flyer_cents:money($('c-pay').value),
     cogs_per_flyer_cents:money($('c-cogs').value),
+    letter:$('c-letter').value||'A',
     mode:$('c-mode').value, created_by:me.id,
     center_lat:newPins[0]?.lat??33.77, center_lng:newPins[0]?.lng??-118.19,
   }).select().single();
@@ -432,7 +446,7 @@ async function openCampaign(id){
   $('v-detail').classList.remove('hide');
   $('d-name').textContent=c.name;
   const profitPer=(c.price_cents/(c.flyer_count||1))-(c.pay_per_flyer_cents||0)-(c.cogs_per_flyer_cents||0);
-  $('d-meta').innerHTML=`${c.client_type} · ${c.mode} · ${c.flyer_count} flyers · $${(c.price_cents/100).toFixed(2)}`+
+  $('d-meta').innerHTML=`<span class="tag green">CAMPAIGN ${esc(c.letter||'A')}</span> · ${c.client_type} · ${c.mode} · ${c.flyer_count} flyers · $${(c.price_cents/100).toFixed(2)}`+
     ` · pay $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} · print $${((c.cogs_per_flyer_cents||0)/100).toFixed(2)}`+
     ` · <span style="color:${profitPer>=0?'var(--green)':'var(--red)'}">profit $${(profitPer/100).toFixed(2)}/flyer</span>`;
   $('d-activate').textContent=c.status==='active'?'Mark done':'Activate';
@@ -534,27 +548,41 @@ function drawQR(ctx,text,x,y,size){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)
     if(qr.isDark(r,c)) ctx.fillRect(x+c*cell, y+r*cell, cell+0.5, cell+0.5);
 }
+const FLYER_URL='scanmap.io'; // small URL printed on every flyer's corner tag — change to your real domain
 function boxMetrics(canvas){
   const qrSize=Math.max(160,Math.round(canvas.width*qrBox.frac));
-  const pad=Math.round(qrSize*0.08), labelH=Math.round(qrSize*0.26);
-  const boxW=qrSize+pad*2, boxH=qrSize+pad*2+labelH;
+  const pad=Math.round(qrSize*0.08);
+  const boxW=qrSize+pad*2, boxH=qrSize+pad*2; // QR only — identifier lives in the corner tag
   const x=Math.max(0,Math.min(canvas.width-boxW,Math.round(qrBox.x*canvas.width)));
   const y=Math.max(0,Math.min(canvas.height-boxH,Math.round(qrBox.y*canvas.height)));
-  return {x,y,boxW,boxH,qrSize,pad,labelH};
+  return {x,y,boxW,boxH,qrSize,pad};
 }
 function composeFlyer(stop,canvas,withHandle){
   canvas.width=flyerImg.naturalWidth; canvas.height=flyerImg.naturalHeight;
   const ctx=canvas.getContext('2d');
   ctx.drawImage(flyerImg,0,0);
   const m=boxMetrics(canvas);
+  // QR block (no label underneath)
   ctx.fillStyle='#FFFFFF'; ctx.fillRect(m.x,m.y,m.boxW,m.boxH);
   ctx.strokeStyle='#000000'; ctx.lineWidth=Math.max(2,m.qrSize*0.012);
   ctx.strokeRect(m.x,m.y,m.boxW,m.boxH);
   drawQR(ctx,`${SCAN_FN_URL}?c=${currentCampaign.id}&s=${stop.id}`,m.x+m.pad,m.y+m.pad,m.qrSize);
-  ctx.fillStyle='#000000';
-  ctx.font=`700 ${Math.round(m.labelH*0.62)}px 'JetBrains Mono',monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(stop.label,m.x+m.boxW/2,m.y+m.pad+m.qrSize+m.labelH/2);
+  // corner ID tag: identifier + URL + recycle notice, placed in a bottom corner away from the QR
+  const W=canvas.width,H=canvas.height,mg=Math.round(W*0.02);
+  const tagW=Math.round(W*0.34), tagH=Math.round(W*0.088);
+  const qrCenterLeft=(m.x+m.boxW/2)<W/2;
+  let tx=qrCenterLeft?W-tagW-mg:mg, ty=H-tagH-mg;
+  // if the QR box sits in that corner anyway, flip sides
+  if(!(tx+tagW<m.x||tx>m.x+m.boxW||ty+tagH<m.y||ty>m.y+m.boxH)) tx=(tx===mg)?W-tagW-mg:mg;
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(tx,ty,tagW,tagH);
+  ctx.strokeStyle='#000000'; ctx.lineWidth=Math.max(1.5,W*0.0022); ctx.strokeRect(tx,ty,tagW,tagH);
+  const px=tx+Math.round(W*0.014);
+  ctx.fillStyle='#000000'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.font=`700 ${Math.round(W*0.030)}px 'JetBrains Mono',monospace`;
+  ctx.fillText(stop.label, px, ty+Math.round(tagH*0.44));
+  ctx.font=`${Math.round(W*0.0125)}px 'JetBrains Mono',monospace`;
+  ctx.fillText(FLYER_URL, px, ty+Math.round(tagH*0.66));
+  ctx.fillText('This flyer is taken down & recycled after 60 days.', px, ty+Math.round(tagH*0.87));
   if(withHandle){ // editor chrome — preview only, never exported
     ctx.strokeStyle='#AAFF00'; ctx.setLineDash([8,6]); ctx.lineWidth=Math.max(2,canvas.width*0.003);
     ctx.strokeRect(m.x,m.y,m.boxW,m.boxH); ctx.setLineDash([]);

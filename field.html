@@ -325,7 +325,7 @@ async function jobCard(c,app){
     :st==='picked_up'?`<span class="tag green">▶</span>`:'';
   return `<div class="card">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
-      <b>${esc(c.name)}</b>
+      <b><span class="tag green" style="margin-right:6px">${esc(c.letter||'A')}</span>${esc(c.name)}</b>
       <div style="text-align:right;flex-shrink:0">
         <div class="mono" style="color:var(--green);font-weight:700;font-size:20px">$${payout}</div>
         <div class="mono" style="font-size:10px;color:var(--mute)">$${pay.toFixed(2)}${t('perflyer')} · ${t('total')}</div>
@@ -346,7 +346,7 @@ async function openJob(cid){
     .eq('campaign_id',cid).eq('worker_id',me.id).maybeSingle();
   myAssignment=asg;
   $('m-name').textContent=c.name;
-  $('m-meta').textContent=`${c.client_type} · ${c.mode}`;
+  $('m-meta').textContent=`CAMPAIGN ${c.letter||'A'} · ${c.client_type} · ${c.mode}`;
   await refreshStops();
   if(!map){
     mapboxgl.accessToken=MAPBOX_TOKEN;
@@ -509,7 +509,7 @@ async function startFreestyle(){
   // GPS ping → create a new stop at current location with next label in the 1A/2B/3C scheme
   navigator.geolocation.getCurrentPosition(async pos=>{
     const i=stops.length;
-    const label=`${i+1}${String.fromCharCode(65+(i%26))}`;
+    const label=`${i+1}${job.letter||'A'}`;
     const {data,error}=await sb.from('stops').insert({campaign_id:job.id,label,seq:i,
       lat:pos.coords.latitude,lng:pos.coords.longitude}).select().single();
     if(error)return toast(error.message);
