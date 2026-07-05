@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0A0A0F">
+<title>ScanMap Field — Placement Jobs</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{--bg:#0A0A0F;--surface:#13131A;--surface2:#1A1A24;--line:#26262F;
+    --ink:#E8E8E0;--mute:#8B8B95;--green:#AAFF00;--amber:#FFB830;--red:#FF4D4D}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100dvh;overflow:hidden}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  button{font-family:'JetBrains Mono',monospace;cursor:pointer;background:none;border:1px solid var(--line);
+    color:var(--ink);padding:14px 16px;font-size:14px;border-radius:4px;width:100%}
+  button.primary{background:var(--green);color:#000;border-color:var(--green);font-weight:700;font-size:15px}
+  button.ghost{border:none;color:var(--mute);width:auto;padding:8px}
+  input,select{background:var(--surface);border:1px solid var(--line);color:var(--ink);
+    padding:13px;font-family:'JetBrains Mono',monospace;font-size:14px;border-radius:4px;width:100%}
+  label{display:block;font-size:11px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;
+    margin:14px 0 6px;font-family:'JetBrains Mono',monospace}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);
+    background-image:radial-gradient(circle,#1c1c26 1px,transparent 1px);background-size:26px 26px}
+  .hide{display:none!important}
+  .pad{padding:18px;overflow:auto;flex:1}
+  .hdr{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);
+    background:rgba(10,10,15,.95)}
+  .hdr .stat{margin-left:auto;text-align:right}
+  .hdr .stat b{color:var(--green);font-size:18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px;margin-bottom:12px}
+  .bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px}
+  .bar>div{height:100%;background:var(--green)}
+  .tag{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:3px;font-size:10px;text-transform:uppercase}
+  .tag.green{border-color:var(--green);color:var(--green)}
+  #map{flex:1}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--green);
+    border-radius:10px 10px 0 0;padding:18px;z-index:20;max-height:78dvh;overflow:auto}
+  .structgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .structgrid button{padding:16px 10px;font-size:13px}
+  .structgrid button.sel{border-color:var(--green);color:var(--green);background:rgba(170,255,0,.07)}
+  .bignum{font-family:'JetBrains Mono',monospace;font-size:44px;font-weight:700;color:var(--green)}
+  .steps{display:flex;gap:6px;margin:8px 0 14px}
+  .steps div{flex:1;height:4px;background:var(--line);border-radius:2px}
+  .steps div.on{background:var(--green)}
+  .flash{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:10px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px}
+  .flash.ok{background:rgba(70,180,0,.82);color:#fff}
+  .flash.bad{background:rgba(200,30,30,.82);color:#fff}
+  #qr-region{width:100%;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .marker-pin{width:30px;height:30px;border-radius:50%;background:#13131A;border:2px solid var(--red);
+    color:var(--red);display:flex;align-items:center;justify-content:center;font:700 10px 'JetBrains Mono'}
+  .marker-pin.done{border-color:var(--green);color:#000;background:var(--green);width:22px;height:22px}
+  .marker-pin.next{animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 12px rgba(255,77,77,.15)}}
+  .toast{position:fixed;bottom:90px;left:16px;right:16px;background:var(--surface2);border:1px solid var(--green);
+    padding:12px 16px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;z-index:99;text-align:center}
+  #auth-wrap{max-width:400px;margin:0 auto;width:100%}
+  .langbtn{position:absolute;top:14px;right:14px;width:auto;padding:8px 14px;z-index:5}
+</style>
+</head>
+<body>
+
+<script src="config.js"></script>
+
+<!-- AUTH -->
+<div class="screen" id="s-auth">
+  <button class="langbtn" onclick="setLang(L==='en'?'es':'en')" id="langbtn">ES</button>
+  <div class="pad" style="display:flex;align-items:center">
+    <div id="auth-wrap">
+      <div class="mono" style="color:var(--green);font-size:11px;letter-spacing:.15em">[ FIELD OPS ]</div>
+      <div style="font-size:30px;font-weight:700;margin:6px 0 4px">SCAN<b style="color:var(--green)">MAP</b> FIELD</div>
+      <div class="mono" style="color:var(--mute);font-size:12px;margin-bottom:20px" data-t="tagline">Verified placement work. Scan, place, prove, get credit.</div>
+      <div class="card">
+        <label data-t="name" class="hide" id="f-namelbl">Full name</label><input id="f-name" class="hide">
+        <label>Email</label><input id="f-email" type="email">
+        <label data-t="password">Password</label><input id="f-pass" type="password">
+        <div style="margin-top:16px;display:grid;gap:10px">
+          <button class="primary" id="f-go" onclick="doAuth()" data-t="signin">Sign in</button>
+          <button onclick="toggleMode()" id="f-toggle" data-t="create">Create worker account</button>
+        </div>
+        <div class="mono" id="f-msg" style="margin-top:10px;font-size:12px;color:var(--amber)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JOBS LIST -->
+<div class="screen hide" id="s-jobs">
+  <div class="hdr">
+    <div><div style="font-weight:700">SCAN<b style="color:var(--green)">MAP</b></div>
+      <div class="mono" style="font-size:11px;color:var(--mute)" id="j-hello"></div></div>
+    <div class="stat mono"><b id="j-today">0</b><div style="font-size:10px;color:var(--mute)" data-t="verifiedtoday">VERIFIED TODAY</div></div>
+    <button class="ghost" onclick="setLang(L==='en'?'es':'en')" id="langbtn2">ES</button>
+    <button class="ghost" onclick="sb.auth.signOut().then(()=>location.reload())">⏻</button>
+  </div>
+  <div class="pad">
+    <div class="mono" style="font-size:11px;color:var(--green);letter-spacing:.12em;margin-bottom:10px" data-t="myjobs">[ MY ASSIGNED JOBS ]</div>
+    <div id="j-list"></div>
+  </div>
+</div>
+
+<!-- JOB / MAP -->
+<div class="screen hide" id="s-job">
+  <div class="hdr">
+    <button class="ghost" onclick="show('s-jobs');loadJobs()">←</button>
+    <div style="min-width:0"><div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="m-name"></div>
+      <div class="mono" style="font-size:11px;color:var(--mute)" id="m-meta"></div></div>
+    <div class="stat mono"><b id="m-count">0/0</b><div style="font-size:10px;color:var(--mute)" data-t="placed">PLACED</div></div>
+  </div>
+  <div id="map"></div>
+  <div style="padding:14px;border-top:1px solid var(--line);display:grid;gap:10px" id="m-actions"></div>
+</div>
+
+<!-- PLACEMENT SHEET -->
+<div class="sheet hide" id="sheet">
+  <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)">
+    <span id="p-stoplabel"></span><button class="ghost" onclick="closeSheet()">✕</button></div>
+  <div class="steps"><div id="st1"></div><div id="st2"></div><div id="st3"></div></div>
+
+  <!-- step 1: scan -->
+  <div id="p-scan">
+    <div style="font-weight:700;font-size:18px;margin-bottom:4px" data-t="scanqr">Scan the flyer's QR code</div>
+    <div class="mono" style="font-size:12px;color:var(--mute);margin-bottom:12px" data-t="scanhint">This verifies the right flyer is at the right stop. Your test scan is discarded from analytics automatically.</div>
+    <div id="qr-region"></div>
+  </div>
+
+  <!-- step 2: structure -->
+  <div id="p-struct" class="hide">
+    <div style="font-weight:700;font-size:18px" data-t="structq">What did you place it on?</div>
+    <div class="mono" style="font-size:11px;color:var(--amber);margin-top:4px" data-t="legalnote">Only place where it's allowed — boards, businesses with permission, permitted kiosks.</div>
+    <div class="structgrid" id="structgrid"></div>
+    <button class="primary" style="margin-top:14px" onclick="toStep3()" data-t="next">Next →</button>
+  </div>
+
+  <!-- step 3: photo -->
+  <div id="p-photo" class="hide">
+    <div style="font-weight:700;font-size:18px" data-t="photoq">Photo proof (required)</div>
+    <div class="mono" style="font-size:12px;color:var(--mute);margin:4px 0 12px" data-t="photohint">Frame the whole flyer and its surroundings so the placement is verifiable.</div>
+    <input type="file" accept="image/*" capture="environment" id="p-file" class="hide" onchange="photoTaken(event)">
+    <img id="p-preview" class="hide" style="width:100%;border:1px solid var(--line);border-radius:4px;margin-bottom:12px">
+    <div style="display:grid;gap:10px">
+      <button onclick="document.getElementById('p-file').click()" id="p-camerabtn" data-t="opencam">📷 Open camera</button>
+      <button class="primary hide" id="p-confirm" onclick="confirmPlacement()" data-t="confirm">✓ Confirm placement</button>
+    </div>
+  </div>
+</div>
+
+<div class="flash ok hide" id="flash-ok"><div>✓</div><div data-t="verified">VERIFIED</div></div>
+<div class="flash bad hide" id="flash-bad"><div>✕</div><div id="flash-bad-msg">WRONG QR</div></div>
+
+<script>
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+let me=null,signup=false,L='en',job=null,stops=[],map=null,markers=[],active=null,scanner=null,
+    sel={structure:null,photoBlob:null,scannedStop:null},todayCount=0;
+
+/* ── i18n ── */
+const T={
+  tagline:{en:'Verified placement work. Scan, place, prove, get credit.',es:'Trabajo de colocación verificado. Escanea, coloca, comprueba, recibe crédito.'},
+  name:{en:'Full name',es:'Nombre completo'},password:{en:'Password',es:'Contraseña'},
+  signin:{en:'Sign in',es:'Iniciar sesión'},create:{en:'Create worker account',es:'Crear cuenta de trabajador'},
+  back:{en:'Back to sign in',es:'Volver a iniciar sesión'},
+  verifiedtoday:{en:'VERIFIED TODAY',es:'VERIFICADOS HOY'},myjobs:{en:'[ MY ASSIGNED JOBS ]',es:'[ MIS TRABAJOS ASIGNADOS ]'},
+  placed:{en:'PLACED',es:'COLOCADOS'},scanqr:{en:"Scan the flyer's QR code",es:'Escanea el código QR del volante'},
+  scanhint:{en:'This verifies the right flyer is at the right stop. Your test scan is discarded from analytics automatically.',
+            es:'Esto verifica el volante correcto en la parada correcta. Tu escaneo de prueba se descarta de las estadísticas.'},
+  structq:{en:'What did you place it on?',es:'¿Dónde lo colocaste?'},
+  legalnote:{en:"Only place where it's allowed — boards, businesses with permission, permitted kiosks.",
+             es:'Coloca solo donde esté permitido — tableros, negocios con permiso, quioscos autorizados.'},
+  next:{en:'Next →',es:'Siguiente →'},photoq:{en:'Photo proof (required)',es:'Foto de prueba (obligatoria)'},
+  photohint:{en:'Frame the whole flyer and its surroundings so the placement is verifiable.',
+             es:'Encuadra el volante completo y su entorno para verificar la colocación.'},
+  opencam:{en:'📷 Open camera',es:'📷 Abrir cámara'},confirm:{en:'✓ Confirm placement',es:'✓ Confirmar colocación'},
+  verified:{en:'VERIFIED',es:'VERIFICADO'},startnext:{en:'▶ Place next stop',es:'▶ Colocar siguiente parada'},
+  freestyle:{en:'+ Place a flyer here (GPS pin)',es:'+ Colocar volante aquí (pin GPS)'},
+  jobdone:{en:'Job complete. Nice work.',es:'Trabajo completo. Buen trabajo.'},
+  flyers:{en:'flyers',es:'volantes'},stopsw:{en:'stops',es:'paradas'},open:{en:'Open job →',es:'Abrir trabajo →'},
+  nojobs:{en:'No jobs assigned yet. Your manager assigns campaigns from the Command dashboard.',
+          es:'Sin trabajos asignados. Tu gerente asigna campañas desde el panel Command.'},
+  wrongqr:{en:'WRONG QR',es:'QR INCORRECTO'},
+};
+const structures=[
+  ['community_board',{en:'Community board',es:'Tablero comunitario'}],
+  ['business_window',{en:'Business window (w/ permission)',es:'Ventana de negocio (con permiso)'}],
+  ['newspaper_box',{en:'Newspaper box',es:'Caja de periódicos'}],
+  ['bus_stop',{en:'Bus stop area',es:'Parada de autobús'}],
+  ['telephone_pole',{en:'Telephone pole',es:'Poste telefónico'}],
+  ['wooden_pole',{en:'Wooden pole',es:'Poste de madera'}],
+  ['light_pole',{en:'Light pole',es:'Poste de luz'}],
+  ['electrical_box',{en:'Electrical box',es:'Caja eléctrica'}],
+  ['fence',{en:'Fence',es:'Cerca'}],
+  ['other',{en:'Other',es:'Otro'}],
+];
+function setLang(l){L=l;localStorage.setItem('lang',l);
+  $('langbtn').textContent=l==='en'?'ES':'EN';$('langbtn2').textContent=l==='en'?'ES':'EN';
+  document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t;if(T[k])el.textContent=T[k][L];});
+  buildStructGrid();}
+const t=k=>T[k]?.[L]??k;
+const toast=m=>{const d=document.createElement('div');d.className='toast';d.textContent=m;
+  document.body.appendChild(d);setTimeout(()=>d.remove(),3000)};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const show=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.add('hide'));$(id).classList.remove('hide');};
+
+/* ── auth ── */
+function toggleMode(){signup=!signup;
+  $('f-name').classList.toggle('hide',!signup);$('f-namelbl').classList.toggle('hide',!signup);
+  $('f-go').textContent=signup?t('create'):t('signin');
+  $('f-toggle').textContent=signup?t('back'):t('create');}
+async function doAuth(){
+  const email=$('f-email').value.trim(),password=$('f-pass').value;$('f-msg').textContent='…';
+  const r=signup
+    ?await sb.auth.signUp({email,password,options:{data:{full_name:$('f-name').value.trim(),role:'worker'}}})
+    :await sb.auth.signInWithPassword({email,password});
+  if(r.error){$('f-msg').textContent=r.error.message;return;}
+  boot();
+}
+async function boot(){
+  const {data:{user}}=await sb.auth.getUser(); if(!user)return;
+  const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).single();
+  if(!prof){$('f-msg').textContent='Confirm your email, then sign in.';return;}
+  me=prof; $('j-hello').textContent=(prof.full_name||user.email);
+  show('s-jobs'); loadJobs(); loadToday();
+}
+async function loadToday(){
+  const start=new Date();start.setHours(0,0,0,0);
+  const {count}=await sb.from('placements').select('id',{count:'exact',head:true})
+    .eq('worker_id',me.id).gte('placed_at',start.toISOString());
+  todayCount=count||0;$('j-today').textContent=todayCount;
+}
+
+/* ── jobs list ── */
+async function loadJobs(){
+  const {data:asg}=await sb.from('assignments')
+    .select('flyers_assigned,campaigns(id,name,client_type,mode,status,center_lat,center_lng)')
+    .eq('worker_id',me.id);
+  const list=$('j-list');list.innerHTML='';
+  const activeJobs=(asg||[]).filter(a=>a.campaigns&&a.campaigns.status==='active');
+  if(!activeJobs.length){list.innerHTML=`<div class="card mono" style="color:var(--mute);font-size:13px">${t('nojobs')}</div>`;return;}
+  for(const a of activeJobs){
+    const c=a.campaigns;
+    const {count:total}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id);
+    const {count:done}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id).eq('status','verified');
+    const pct=total?Math.round(done/total*100):0;
+    list.insertAdjacentHTML('beforeend',`<div class="card">
+      <div style="display:flex;justify-content:space-between;gap:10px">
+        <b>${esc(c.name)}</b><span class="tag green">${c.mode}</span></div>
+      <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
+        ${a.flyers_assigned} ${t('flyers')} · ${done||0}/${total||0} ${t('stopsw')}</div>
+      <div class="bar"><div style="width:${pct}%"></div></div>
+      <button class="primary" style="margin-top:12px" onclick='openJob(${JSON.stringify(c.id)})'>${t('open')}</button>
+    </div>`);
+  }
+}
+
+/* ── job map ── */
+async function openJob(cid){
+  const {data:c}=await sb.from('campaigns').select('*').eq('id',cid).single();
+  job=c; show('s-job');
+  $('m-name').textContent=c.name;
+  $('m-meta').textContent=`${c.client_type} · ${c.mode}`;
+  await refreshStops();
+  if(!map){
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/dark-v11',
+      center:[c.center_lng||-118.19,c.center_lat||33.77],zoom:14,pitch:55});
+    map.addControl(new mapboxgl.GeolocateControl({positionOptions:{enableHighAccuracy:true},
+      trackUserLocation:true,showUserHeading:true}));
+  } else map.setCenter([c.center_lng||-118.19,c.center_lat||33.77]);
+  drawMarkers(); drawActions();
+}
+async function refreshStops(){
+  const {data}=await sb.from('stops').select('*').eq('campaign_id',job.id).order('seq');
+  stops=data||[];
+  const done=stops.filter(s=>s.status==='verified').length;
+  $('m-count').textContent=`${done}/${job.mode==='freestyle'?job.flyer_count:stops.length}`;
+}
+function drawMarkers(){
+  markers.forEach(m=>m.remove());markers=[];
+  const next=stops.find(s=>s.status==='todo');
+  stops.forEach(s=>{
+    if(s.lat==null)return;
+    const el=document.createElement('div');
+    el.className='marker-pin'+(s.status==='verified'?' done':s===next?' next':'');
+    el.textContent=s.status==='verified'?'✓':s.label;
+    markers.push(new mapboxgl.Marker({element:el}).setLngLat([s.lng,s.lat]).addTo(map));
+  });
+  if(next&&next.lat!=null)map.flyTo({center:[next.lng,next.lat],zoom:16});
+}
+function drawActions(){
+  const a=$('m-actions');a.innerHTML='';
+  if(job.mode==='freestyle'){
+    a.innerHTML=`<button class="primary" onclick="startFreestyle()">${t('freestyle')}</button>`;
+  }else{
+    const next=stops.find(s=>s.status==='todo');
+    a.innerHTML=next
+      ?`<button class="primary" onclick="startStop('${next.id}')">${t('startnext')} — ${esc(next.label)}</button>`
+      :`<div class="mono" style="text-align:center;color:var(--green);padding:6px">✓ ${t('jobdone')}</div>`;
+  }
+}
+
+/* ── placement flow ── */
+function buildStructGrid(){
+  const g=$('structgrid');if(!g)return;g.innerHTML='';
+  structures.forEach(([key,names])=>{
+    const b=document.createElement('button');b.textContent=names[L];
+    b.onclick=()=>{sel.structure=key;[...g.children].forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
+    g.appendChild(b);
+  });
+}
+function setSteps(n){['st1','st2','st3'].forEach((id,i)=>$(id).classList.toggle('on',i<n));}
+function openSheet(){$('sheet').classList.remove('hide');}
+function closeSheet(){$('sheet').classList.add('hide');stopScanner();}
+function startStop(stopId){
+  active=stops.find(s=>s.id===stopId);
+  sel={structure:null,photoBlob:null,scannedStop:null};
+  $('p-stoplabel').textContent=`${t('placed')} · ${active.label}`;
+  $('p-scan').classList.remove('hide');$('p-struct').classList.add('hide');$('p-photo').classList.add('hide');
+  setSteps(1);openSheet();startScanner();
+}
+async function startFreestyle(){
+  // GPS ping → create a new stop at current location with next label in the 1A/2B/3C scheme
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const i=stops.length;
+    const label=`${i+1}${String.fromCharCode(65+(i%26))}`;
+    const {data,error}=await sb.from('stops').insert({campaign_id:job.id,label,seq:i,
+      lat:pos.coords.latitude,lng:pos.coords.longitude}).select().single();
+    if(error)return toast(error.message);
+    stops.push(data);drawMarkers();startStop(data.id);
+  },()=>toast('Enable location access to place freestyle stops'),{enableHighAccuracy:true});
+}
+function startScanner(){
+  stopScanner();
+  scanner=new Html5Qrcode('qr-region');
+  scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:230,height:230}},decoded=>{
+    // must be this campaign's QR; on optimized routes it must also be this exact stop
+    const u=new URL(decoded,location.href);
+    const okCampaign=u.searchParams.get('c')===job.id;
+    const okStop=job.mode==='freestyle'||u.searchParams.get('s')===active.id;
+    if(okCampaign&&okStop){
+      sel.scannedStop=u.searchParams.get('s');
+      stopScanner();
+      $('p-scan').classList.add('hide');$('p-struct').classList.remove('hide');setSteps(2);
+    }else{
+      $('flash-bad-msg').textContent=t('wrongqr')+(okCampaign?` — ${t('placed')} ≠ ${active.label}`:'');
+      flash('flash-bad');
+    }
+  }).catch(()=>toast('Camera unavailable — allow camera access in browser settings'));
+}
+function stopScanner(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('qr-region').innerHTML='';}}
+function toStep3(){
+  if(!sel.structure)return toast(t('structq'));
+  $('p-struct').classList.add('hide');$('p-photo').classList.remove('hide');setSteps(3);
+}
+function photoTaken(e){
+  const f=e.target.files[0];if(!f)return;
+  sel.photoBlob=f;
+  $('p-preview').src=URL.createObjectURL(f);$('p-preview').classList.remove('hide');
+  $('p-confirm').classList.remove('hide');
+}
+function flash(id){$(id).classList.remove('hide');setTimeout(()=>$(id).classList.add('hide'),1400);}
+async function confirmPlacement(){
+  $('p-confirm').disabled=true;
+  const pos=await new Promise(res=>navigator.geolocation.getCurrentPosition(
+    p=>res(p),()=>res(null),{enableHighAccuracy:true,timeout:6000}));
+  // 1. upload proof photo
+  const path=`${job.id}/${active.id}_${Date.now()}.jpg`;
+  const up=await sb.storage.from('proof-photos').upload(path,sel.photoBlob,{contentType:'image/jpeg'});
+  if(up.error){toast(up.error.message);$('p-confirm').disabled=false;return;}
+  // 2. record placement + 3. mark stop verified
+  const {error}=await sb.from('placements').insert({
+    stop_id:active.id,campaign_id:job.id,worker_id:me.id,
+    structure_type:sel.structure,photo_path:path,
+    lat:pos?.coords.latitude??null,lng:pos?.coords.longitude??null});
+  if(error){toast(error.message);$('p-confirm').disabled=false;return;}
+  await sb.from('stops').update({status:'verified'}).eq('id',active.id);
+  $('p-confirm').disabled=false;$('p-preview').classList.add('hide');$('p-confirm').classList.add('hide');
+  closeSheet();flash('flash-ok');
+  todayCount++;$('j-today').textContent=todayCount;
+  await refreshStops();drawMarkers();drawActions();
+}
+
+/* boot */
+setLang(localStorage.getItem('lang')||'en');
+buildStructGrid();
+sb.auth.getSession().then(({data})=>{if(data.session)boot();});
+</script>
+</body>
+</html>
