@@ -112,6 +112,8 @@
     border-top:1px solid var(--line-d);font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--chalkmute)}
   .sw{display:inline-flex;align-items:center;gap:5px}
   .sw i{width:10px;height:10px;border-radius:50%}
+  .periodsel{background:var(--asphalt2);color:var(--green);border:1px solid var(--line-d);
+    font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 6px;border-radius:2px;cursor:pointer}
   .mapboxgl-popup-content{background:var(--paper)!important;border:2px solid #000;border-radius:2px;
     font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);padding:10px 12px;line-height:1.75;
     box-shadow:4px 4px 0 rgba(0,0,0,.5)}
@@ -143,6 +145,13 @@
     border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff6b6b,#a51f1f);box-shadow:0 3px 4px rgba(0,0,0,.45)}
   .pincard .idx{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink);color:var(--paper);
     display:inline-block;padding:2px 8px;margin-bottom:12px}
+  .pincard.feature{grid-column:1/-1;transform:rotate(-.5deg);border:3px solid var(--ink)}
+  .pincard.feature h3{font-size:20px}
+  .pincard.feature p{font-size:15px;max-width:720px}
+  .ptag{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;
+    padding:2px 8px;margin-left:8px;vertical-align:2px}
+  .ptag.pri{background:var(--green);color:#000;font-weight:700}
+  .ptag.addon{border:1.5px dashed var(--inkmute);color:var(--inkmute)}
   .pincard h3{font-family:'Archivo Black',sans-serif;font-size:15px;text-transform:uppercase;margin-bottom:8px}
   .pincard p{color:var(--inkmute);font-size:13.5px;line-height:1.65}
 
@@ -234,7 +243,13 @@
   <div class="mapshell">
     <div class="mapbar">
       <span><span class="dot"></span>SAMPLE CAMPAIGN — E 2ND ST, BELMONT SHORE</span>
-      <span>12 locations · <b style="color:var(--green)" id="lv-count">4,187</b> scans · hover any pin</span>
+      <span>12 locations · <b style="color:var(--green)" id="lv-count">…</b> scans ·
+        <select id="lv-period" class="periodsel">
+          <option value="0.14">PAST 24 HRS</option>
+          <option value="1" selected>PAST 7 DAYS</option>
+          <option value="3.6">PAST 30 DAYS</option>
+          <option value="5.4">ALL TIME</option>
+        </select> · hover any pin</span>
     </div>
     <div id="heromap"></div>
     <div class="maplegend">
@@ -268,18 +283,18 @@
   <div class="sec-label">[ WHO PINS WHAT ]</div>
   <h2 class="disp">If it goes on a wall,<br>it goes on the map.</h2>
   <div class="board">
-    <div class="pincard"><div class="idx">1A</div><h3>Local businesses</h3>
-      <p>Run promo flyers around your shop and find out which blocks actually walk through the door. Then spend every next dollar on those corners only.</p></div>
-    <div class="pincard"><div class="idx">2B</div><h3>Events &amp; gatherings</h3>
-      <p>Shows, games, markets, meetups. See which neighborhoods are scanning for tickets while there's still time to move posters — not in a recap.</p></div>
-    <div class="pincard"><div class="idx">3C</div><h3>Lost pets</h3>
-      <p>Blanket the area with tracked signs in one afternoon. Scans cluster where your pet's been spotted — that's where you search next.</p></div>
-    <div class="pincard"><div class="idx">4D</div><h3>Local lead gen</h3>
+    <div class="pincard feature"><div class="idx">1A</div><span class="ptag pri">PRIORITY USE CASE</span><h3>Local businesses</h3>
+      <p>This is what ScanMap was built for. Put your promo on the streets around your shop and find out which blocks actually walk through the door — then spend every next advertising dollar on those corners only. Restaurants, salons, gyms, repair shops, boutiques: if your customers live within two miles, your best ad channel is the pole they walk past every day.</p></div>
+    <div class="pincard"><div class="idx">2B</div><h3>Local lead gen</h3>
       <p>"We buy phones." "Free quote." Know which corners produce actual leads instead of drive-by curiosity — tracked all the way to the conversion.</p></div>
-    <div class="pincard"><div class="idx">5E</div><h3>Launches &amp; openings</h3>
+    <div class="pincard"><div class="idx">3C</div><h3>Events &amp; gatherings</h3>
+      <p>Shows, games, markets, meetups. See which neighborhoods are scanning for tickets while there's still time to move posters — not in a recap.</p></div>
+    <div class="pincard"><div class="idx">4D</div><h3>Launches &amp; openings</h3>
       <p>Flood the zone before opening day and watch the heat build street by street. Fix the second print run while it still matters.</p></div>
-    <div class="pincard"><div class="idx">6F</div><h3>Community &amp; nonprofits</h3>
+    <div class="pincard"><div class="idx">5E</div><h3>Community &amp; nonprofits</h3>
       <p>Drives, fundraisers, volunteer calls — with a map that shows the board exactly which streets every signup came from.</p></div>
+    <div class="pincard"><div class="idx">6F</div><span class="ptag addon">ADD-ON</span><h3>Lost pets</h3>
+      <p>A done-for-you extra: we blanket the area with tracked signs in one afternoon. Scans cluster where your pet's been spotted — that's where you search next.</p></div>
   </div>
 </div></section>
 
@@ -305,10 +320,10 @@
   <h2 class="disp">Run it yourself, or<br>hand us the stapler.</h2>
   <div class="pricegrid">
     <div class="priceflyer a">
-      <div class="trialtag">7-DAY FREE TRIAL · 30-QR TEST BATCH</div>
+      <div class="trialtag">7-DAY FREE TRIAL · 10-QR TEST BATCH</div>
       <h3>Do-it-yourself platform</h3>
       <div class="bigprice"><span class="hl">$25</span><small>/mo</small></div>
-      <div class="pf-note">The trial isn't a demo — it's 30 real tracked QR codes. Run a mini-campaign on your own street before you pay a dime.</div>
+      <div class="pf-note">The trial isn't a demo — it's 10 real tracked QR codes. Run a mini-campaign on your own street before you pay a dime.</div>
       <ul>
         <li>Bulk QR flyer generator</li>
         <li>Street map planner &amp; routes</li>
@@ -325,7 +340,8 @@
         <li>Professional printing included</li>
         <li>Photo-verified placement by our crew</li>
         <li>Full heatmap + performance report</li>
-        <li>Built for lost pets, events &amp; launches</li>
+        <li>Built for local businesses, events &amp; launches</li>
+        <li>Lost-pet blitz available as an add-on</li>
       </ul>
       <a class="btn ghost-p" href="mailto:CHANGE-ME@example.com?subject=ScanMap%20campaign%20inquiry">REQUEST A QUOTE</a>
     </div>
@@ -362,10 +378,6 @@
     ctx.fillStyle='#141412';
     for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect(c*cell,r*cell,cell+0.4,cell+0.4);
   }catch(e){}
-  // real homes & streets: zoomed-in Belmont Shore with a red pin at 2nd & Park (location 8H)
-  document.getElementById('fl-map').src=
-    'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/'+
-    'pin-l+ff3b3b(-118.1390,33.7593)/-118.1390,33.7593,16.1,0/640x400@2x?access_token='+MAPBOX_TOKEN;
 })();
 
 /* ── flyer scan counter: starts at 83, +1 after 17s, then +1 every 5 min. In-memory only — resets on refresh ── */
@@ -380,57 +392,92 @@
   setTimeout(()=>{ tick(); setInterval(tick, 5*60*1000); }, 17*1000);
 })();
 
-/* ── Live sample map: E 2nd St, Belmont Shore, Long Beach ── */
+/* ── Live sample map: Belmont Shore corners, geocoder-snapped to intersections ── */
 (function(){
   mapboxgl.accessToken=MAPBOX_TOKEN;
-  const CENTER=[-118.1415,33.7597]; // Belmont Shore, Long Beach
-  // sample pins scattered on real corners — hover shows the cross streets
-  const stops=[
-    ["1A","Ocean Blvd & Granada Ave",  -118.1468,33.7566, 21, 1.2],
-    ["2B","Livingston Dr & Prospect Ave",-118.1448,33.7614, 58, 3.0],
-    ["3C","E 2nd St & Glendora Ave",   -118.1485,33.7591,102, 4.9],
-    ["4D","E 1st St & Argonne Ave",    -118.1444,33.7576, 77, 3.8],
-    ["5E","Division St & La Verne Ave",-118.1427,33.7583,301, 9.1],
-    ["6F","E 2nd St & Corona Ave",     -118.1338,33.7587,213, 7.4],
-    ["7G","E 2nd St & Nieto Ave",      -118.1409,33.7594,655,16.9],
-    ["8H","E 2nd St & Park Ave",       -118.1390,33.7593,890,21.0],
-    ["9I","E 1st St & Roycroft Ave",   -118.1372,33.7580,158, 6.2],
-    ["10J","E Colorado St & Roycroft Ave",-118.1373,33.7638,36, 1.7],
-    ["11K","Ocean Blvd & Bay Shore Ave",-118.1292,33.7551, 44, 2.0],
-    ["12L","E 3rd St & Termino Ave",   -118.1522,33.7639, 12, 0.6],
+  const CENTER=[-118.1385,33.7590];
+  // [label, "Street A & Street B", fallback lng, fallback lat, scans past-7-days, conv%]
+  const raw=[
+    ["1A","Ocean Blvd & Granada Ave",   -118.14220,33.75530, 95, 3.1],
+    ["2B","E 3rd St & Termino Ave",     -118.15200,33.76330, 28, 1.1],
+    ["3C","E 2nd St & Glendora Ave",    -118.14345,33.75980,295, 8.8],
+    ["4D","E 1st St & Argonne Ave",     -118.14095,33.75840,120, 4.2],
+    ["5E","Division St & La Verne Ave", -118.13970,33.75720, 60, 2.4],
+    ["6F","E 2nd St & St Joseph Ave",   -118.13220,33.75755,540,14.6],
+    ["7G","E 2nd St & Corona Ave",      -118.12970,33.75705,830,19.3],
+    ["8H","E 2nd St & Park Ave",        -118.13720,33.75855,890,21.0],
+    ["9I","E 1st St & Roycroft Ave",    -118.13345,33.75690,380,11.5],
+    ["10J","E Colorado St & Roycroft Ave",-118.13730,33.76400,180, 6.0],
+    ["11K","Ocean Blvd & Bay Shore Ave",-118.12620,33.75430,340,10.2],
+    ["12L","E 2nd St & Livingston Dr",  -118.14600,33.76035,610,15.8],
   ];
-  const max=Math.max(...stops.map(s=>s[4]));
-  document.getElementById('lv-count').textContent=stops.reduce((t,s)=>t+s[4],0).toLocaleString();
+  const max=Math.max(...raw.map(s=>s[4]));
   const ago=["18m","42m","1h","2h","3h","5h"];
-  const geo={type:"FeatureCollection",features:stops.map((s,i)=>({
-    type:"Feature",geometry:{type:"Point",coordinates:[s[2],s[3]]},
-    properties:{label:s[0],name:s[1],scans:s[4],conv:s[5],w:s[4]/max,last:ago[i%ago.length]}}))};
+  let period=1, stops=raw;
+
+  // snap each pin to the real intersection via geocoder (cached in localStorage)
+  async function snap(){
+    const key='sm_snap_v4';
+    try{const c=JSON.parse(localStorage.getItem(key)||'null');if(c&&c.length===raw.length)return c;}catch(e){}
+    const out=await Promise.all(raw.map(async s=>{
+      try{
+        const q=encodeURIComponent(s[1].replace('&','and')+', Long Beach, California');
+        const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+q+
+          '.json?types=address&limit=1&proximity=-118.138,33.759&access_token='+MAPBOX_TOKEN);
+        const j=await r.json(); const c=j.features&&j.features[0]&&j.features[0].center;
+        if(c&&Math.abs(c[0]+118.138)<0.05&&Math.abs(c[1]-33.759)<0.03)
+          return [s[0],s[1],c[0],c[1],s[4],s[5]];
+      }catch(e){}
+      return s;
+    }));
+    try{localStorage.setItem(key,JSON.stringify(out));}catch(e){}
+    return out;
+  }
+  function geojson(){
+    return {type:"FeatureCollection",features:stops.map((s,i)=>({
+      type:"Feature",geometry:{type:"Point",coordinates:[s[2],s[3]]},
+      properties:{label:s[0],name:s[1],scans:Math.round(s[4]*period),conv:s[5],
+        w:s[4]/max,last:ago[i%ago.length]}}))};
+  }
+  function total(){
+    document.getElementById('lv-count').textContent=
+      stops.reduce((t,s)=>t+Math.round(s[4]*period),0).toLocaleString();
+  }
+  total();
 
   const map=new mapboxgl.Map({container:'heromap',style:'mapbox://styles/mapbox/dark-v11',
     center:CENTER,zoom:14.3,pitch:0,bearing:0}); // eagle view, locked
   ['scrollZoom','dragPan','dragRotate','boxZoom','doubleClickZoom','touchZoomRotate','keyboard']
-    .forEach(h=>map[h].disable());
+    .forEach(k=>map[k].disable());
 
-  map.on('load',()=>{
-    map.addSource('demo',{type:'geojson',data:geo});
-    // heat: green (quiet) → yellow (some) → orange (busy) → red (heavy)
+  map.on('load',async()=>{
+    stops=await snap(); total();
+    // flyer static map: red pin exactly on the snapped 2nd & Park corner
+    const park=stops.find(s=>s[0]==='8H');
+    document.getElementById('fl-map').src=
+      'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/'+
+      'pin-l+ff3b3b('+park[2]+','+park[3]+')/'+park[2]+','+park[3]+
+      ',16.1,0/640x400@2x?access_token='+MAPBOX_TOKEN;
+
+    map.addSource('demo',{type:'geojson',data:geojson()});
+    // heat: green (quiet) -> yellow (some) -> orange (busy) -> red (heavy)
     map.addLayer({id:'heat',type:'heatmap',source:'demo',paint:{
       'heatmap-weight':['get','w'],
-      'heatmap-intensity':1.3,
-      'heatmap-radius':['interpolate',['linear'],['zoom'],13,26,16,64],
+      'heatmap-intensity':1.7,
+      'heatmap-radius':['interpolate',['linear'],['zoom'],13,30,16,72],
       'heatmap-color':['interpolate',['linear'],['heatmap-density'],
         0,'rgba(0,0,0,0)',
-        0.15,'rgba(61,220,78,0.40)',
-        0.40,'rgba(255,210,61,0.50)',
-        0.65,'rgba(255,138,42,0.60)',
-        0.90,'rgba(255,59,59,0.80)'],
-      'heatmap-opacity':0.85}});
+        0.12,'rgba(61,220,78,0.42)',
+        0.35,'rgba(255,210,61,0.55)',
+        0.60,'rgba(255,138,42,0.65)',
+        0.85,'rgba(255,59,59,0.85)'],
+      'heatmap-opacity':0.88}});
     map.addLayer({id:'pts',type:'circle',source:'demo',paint:{
-      'circle-radius':['interpolate',['linear'],['get','w'],0,5,1,9],
+      'circle-radius':['interpolate',['linear'],['get','w'],0,5.5,1,10],
       'circle-stroke-width':1.5,'circle-stroke-color':'#0A0A0F',
       'circle-color':['step',['get','w'],'#3ddc4e',0.25,'#ffd23d',0.5,'#ff8a2a',0.75,'#ff3b3b']}});
     map.addLayer({id:'lbl',type:'symbol',source:'demo',layout:{
-      'text-field':['get','label'],'text-size':10,'text-offset':[0,-1.5],
+      'text-field':['get','label'],'text-size':10,'text-offset':[0,-1.6],
       'text-font':['DIN Pro Medium','Arial Unicode MS Regular']},
       paint:{'text-color':'#E8E8E0','text-halo-color':'#0A0A0F','text-halo-width':1.4}});
 
@@ -441,15 +488,21 @@
       const hc=p.w>=0.75?'#c0392b':p.w>=0.5?'#d35400':p.w>=0.25?'#b7950b':'#1e8449';
       map.getCanvas().style.cursor='pointer';
       pop.setLngLat(e.features[0].geometry.coordinates)
-        .setHTML(`<b>${p.label} · ${p.name}</b><br>
-          Scans: <b>${(+p.scans).toLocaleString()}</b> · Conv: ${p.conv}%<br>
-          Traffic: <b style="color:${hc}">${heat}</b> · last scan ${p.last} ago`)
+        .setHTML('<b>'+p.label+' · '+p.name+'</b><br>'+
+          'Scans: <b>'+(+p.scans).toLocaleString()+'</b> · Conv: '+p.conv+'%<br>'+
+          'Traffic: <b style="color:'+hc+'">'+heat+'</b> · last scan '+p.last+' ago')
         .addTo(map);
     }
     map.on('mouseenter','pts',showPop);
     map.on('mousemove','pts',showPop);
     map.on('mouseleave','pts',()=>{map.getCanvas().style.cursor='';pop.remove();});
     map.on('click','pts',showPop);
+
+    // time period selector
+    document.getElementById('lv-period').addEventListener('change',ev=>{
+      period=parseFloat(ev.target.value);
+      total(); map.getSource('demo').setData(geojson());
+    });
   });
 })();
 </script>
