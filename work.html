@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScanMap — Help Wanted</title>
+<meta name="description" content="Get paid to walk your neighborhood putting up flyers. See the pay before you accept. Photo-verified work, no shifts, no boss.">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{--asphalt:#101013;--paper:#F4F0E4;--ink:#141412;--inkmute:#5c5950;
+    --chalk:#d8d5cc;--chalkmute:#8e8b83;--green:#AAFF00;--line-d:#23232d}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--asphalt);color:var(--chalk);font-family:'Space Grotesk',sans-serif;
+    background-image:repeating-linear-gradient(90deg,transparent 0 160px,rgba(255,255,255,.012) 160px 163px)}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .disp{font-family:'Archivo Black',sans-serif;text-transform:uppercase;letter-spacing:-.01em;line-height:.95}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  .btn{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:13.5px;padding:14px 22px;
+    border:2px solid currentColor;border-radius:2px;font-weight:700;transition:.12s}
+  .btn.stamp{background:var(--green);color:#000;border-color:#000;box-shadow:4px 4px 0 #000}
+  .btn.stamp:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
+  nav{position:sticky;top:0;z-index:60;background:rgba(16,16,19,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line-d)}
+  nav .wrap{display:flex;align-items:center;gap:20px;padding:15px 22px}
+  .logo{font-family:'Archivo Black',sans-serif;font-size:17px}.logo b{color:var(--green)}
+  nav .links{margin-left:auto;display:flex;gap:22px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--chalkmute)}
+  nav .links a:hover{color:var(--green)}
+
+  /* ── the poster ── */
+  .posterzone{padding:64px 0 80px;display:flex;justify-content:center}
+  .poster{background:var(--paper);color:var(--ink);width:min(480px,92vw);position:relative;
+    transform:rotate(-1.4deg);box-shadow:0 28px 60px rgba(0,0,0,.6);
+    background-image:radial-gradient(rgba(0,0,0,.05) .5px,transparent .5px);background-size:5px 5px;
+    transition:transform .25s}
+  .poster:hover{transform:rotate(-.4deg)}
+  .staple{position:absolute;width:26px;height:9px;background:linear-gradient(#b9b9b9,#7d7d7d);
+    border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  .staple.tl{top:10px;left:30px;transform:rotate(-8deg)}
+  .staple.tr{top:12px;right:32px;transform:rotate(7deg)}
+  .poster .inner{padding:34px 30px 0}
+  .poster .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.28em;color:var(--inkmute);
+    text-align:center;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:7px 0}
+  .poster h1{font-size:clamp(46px,11vw,64px);text-align:center;margin:20px 0 4px;color:var(--ink)}
+  .poster h1 mark{background:var(--green);padding:0 6px}
+  .poster .pitch{text-align:center;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--inkmute);
+    line-height:1.8;max-width:340px;margin:14px auto 20px}
+  .poster .pitch b{color:var(--ink)}
+  .poster .facts{display:flex;border-top:1.5px dashed var(--inkmute);border-bottom:1.5px dashed var(--inkmute)}
+  .poster .facts div{flex:1;text-align:center;padding:12px 6px;font-family:'JetBrains Mono',monospace;font-size:10px;
+    letter-spacing:.06em;color:var(--inkmute);border-right:1.5px dashed var(--inkmute)}
+  .poster .facts div:last-child{border-right:none}
+  .poster .facts b{display:block;font-family:'Archivo Black',sans-serif;font-size:15px;color:var(--ink);
+    letter-spacing:0;margin-bottom:3px;text-transform:uppercase}
+  .tearhint{text-align:center;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.2em;
+    color:var(--inkmute);padding:14px 0 0}
+  .tabs{display:flex;padding:0 0 0}
+  .tab{flex:1;border:none;background:none;border-right:1.5px dashed var(--inkmute);border-top:1.5px dashed var(--inkmute);
+    padding:20px 0 14px;cursor:pointer;transition:transform .35s,opacity .35s;font-family:inherit}
+  .tab:last-child{border-right:none}
+  .tab span{writing-mode:vertical-rl;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+    letter-spacing:.16em;color:var(--ink)}
+  .tab:hover{background:rgba(170,255,0,.25)}
+  .tab.gone{visibility:hidden}
+  .tab.tearing{transform:translateY(70px) rotate(14deg);opacity:0}
+  @media (prefers-reduced-motion: reduce){.tab.tearing{transform:none;transition:none}}
+
+  /* ── sections ── */
+  .tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--green)}
+  h2{font-size:clamp(24px,4vw,36px);color:#fff;margin:10px 0 14px}
+  section{padding:70px 0;border-top:1px solid var(--line-d)}
+  .three{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0;margin-top:30px;border:1px solid var(--line-d)}
+  .three div{padding:26px 24px;border-right:1px solid var(--line-d)}
+  .three div:last-child{border-right:none}
+  @media(max-width:780px){.three div{border-right:none;border-bottom:1px solid var(--line-d)}.three div:last-child{border-bottom:none}}
+  .three h3{color:#fff;font-size:16px;margin-bottom:8px}
+  .three h3 b{color:var(--green)}
+  .three p{color:var(--chalkmute);font-size:13.5px;line-height:1.7}
+
+  /* job card specimen */
+  .speczone{display:grid;grid-template-columns:1fr 340px;gap:44px;align-items:center}
+  @media(max-width:780px){.speczone{grid-template-columns:1fr}}
+  .jobcard{background:var(--paper);color:var(--ink);padding:20px;transform:rotate(1.2deg);
+    box-shadow:0 18px 36px rgba(0,0,0,.55);
+    background-image:radial-gradient(rgba(0,0,0,.05) .5px,transparent .5px);background-size:5px 5px}
+  .jobcard:hover{transform:rotate(.3deg)}
+  .jobcard{transition:transform .2s}
+  .jc-top{display:flex;gap:14px;align-items:flex-start}
+  .jc-letter{flex-shrink:0;width:46px;height:46px;background:var(--green);border:2px solid #000;
+    box-shadow:3px 3px 0 #000;display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo Black',sans-serif;font-size:23px}
+  .jc-pay{margin-left:auto;text-align:right}
+  .jc-pay b{font-family:'Archivo Black',sans-serif;font-size:26px;display:block}
+  .jc-pay span{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--inkmute)}
+  .jc-name{font-weight:700;font-size:15px;padding-top:4px}
+  .jc-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--inkmute);margin-top:12px;line-height:1.9}
+  .jc-btn{margin-top:14px;background:var(--green);border:2px solid #000;box-shadow:3px 3px 0 #000;
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;text-align:center;padding:11px;border-radius:2px}
+  .lead{color:var(--chalkmute);font-size:15px;line-height:1.75}
+  .lead b{color:var(--chalk)}
+
+  /* faq */
+  details{border-bottom:1px solid var(--line-d)}
+  details summary{cursor:pointer;padding:18px 4px;color:#fff;font-size:15px;font-weight:700;list-style:none}
+  details summary::before{content:"+ ";color:var(--green);font-family:'JetBrains Mono',monospace}
+  details[open] summary::before{content:"− "}
+  details p{color:var(--chalkmute);font-size:13.5px;line-height:1.75;padding:0 4px 18px;max-width:680px}
+  footer{padding:32px 0;color:var(--chalkmute);font-family:'JetBrains Mono',monospace;font-size:12px;border-top:1px solid var(--line-d)}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a href="landing.html" class="logo">SCAN<b>MAP</b></a>
+  <div class="links">
+    <a href="landing.html">Home</a>
+    <a href="#why">Why this gig</a>
+    <a href="#faq">FAQ</a>
+    <a href="field.html" style="color:var(--green)">Apply →</a>
+  </div>
+</div></nav>
+
+<!-- THE POSTER -->
+<div class="posterzone"><div class="poster">
+  <span class="staple tl"></span><span class="staple tr"></span>
+  <div class="inner">
+    <div class="eyebrow">FLEXIBLE WORK · YOUR NEIGHBORHOOD · YOUR PACE</div>
+    <h1 class="disp">Help<br><mark>wanted.</mark></h1>
+    <div class="pitch">Get paid to <b>walk your neighborhood</b> putting up flyers. Scan a code, snap a photo, get credit. <b>The pay is printed on every job before you accept it.</b></div>
+    <div class="facts">
+      <div><b>Per flyer</b>pay shown up front</div>
+      <div><b>No shifts</b>work when you want</div>
+      <div><b>Photo-paid</b>proof = payout</div>
+    </div>
+    <div class="tearhint">↓ TEAR A TAB TO APPLY ↓</div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+</div></div>
+
+<!-- WHY -->
+<section id="why"><div class="wrap">
+  <div class="tag">[ WHY PEOPLE LIKE THIS GIG ]</div>
+  <h2 class="disp">No car required.<br>No boss in your ear.</h2>
+  <div class="three">
+    <div><h3>You see the money <b>first</b></h3>
+      <p>Every job card shows the pay per flyer and the total before you tap anything. No surge math, no estimates, no surprises after the work is done.</p></div>
+    <div><h3>Your work <b>defends itself</b></h3>
+      <p>Every placement is photo-verified with GPS. Nobody can question whether you did the job — the proof is attached to every single flyer you put up.</p></div>
+    <div><h3>It's <b>actually</b> flexible</h3>
+      <p>No shifts, no minimums, no penalty for saying no. Apply to a route when you want money, ignore the board when you don't. Deadlines belong to campaigns, not to your day.</p></div>
+  </div>
+</div></section>
+
+<!-- JOB CARD SPECIMEN -->
+<section><div class="wrap"><div class="speczone">
+  <div>
+    <div class="tag">[ WHAT A JOB LOOKS LIKE ]</div>
+    <h2 class="disp">This is the whole offer.</h2>
+    <p class="lead">One card. The letter is the campaign, the number is your payout, the map shows every stop before you commit. Flyers are printed for you — pick them up at a print shop near you or get them shipped. A typical route is <b>a neighborhood walk and a podcast and a half.</b></p>
+    <div style="margin-top:24px"><a class="btn stamp" href="field.html">SEE OPEN JOBS →</a></div>
+  </div>
+  <div class="jobcard">
+    <div class="jc-top">
+      <div class="jc-letter">B</div>
+      <div class="jc-name">Belmont Shore — Grand Opening</div>
+      <div class="jc-pay"><b>$37.50</b><span>$0.75/flyer · total</span></div>
+    </div>
+    <div class="jc-meta">50 flyers · 50 stops · optimized route<br>~1.8 mi · pickup: Staples (0.6 mi from you)</div>
+    <div class="jc-btn">VIEW ROUTE &amp; DETAILS →</div>
+  </div>
+</div></div></section>
+
+<!-- FAQ -->
+<section id="faq" style="padding-top:56px"><div class="wrap">
+  <div class="tag">[ THE SHORT VERSION ]</div>
+  <h2 class="disp">Four questions, four answers.</h2>
+  <div style="margin-top:20px">
+    <details><summary>When do I get paid?</summary>
+      <p>Your balance builds with every photo-verified placement and shows live in the app. Add your payment details (Venmo, Zelle, PayPal, Cash App, or check) and payouts are sent against your verified balance.</p></details>
+    <details><summary>Do I have to buy or print anything?</summary>
+      <p>No. Printing is covered by the campaign. When you apply, you choose a print-shop pickup near you or shipping — the batch is waiting under your name.</p></details>
+    <details><summary>What counts as a completed placement?</summary>
+      <p>Three taps at each stop: scan the flyer's QR code, select what you placed it on, take a proof photo. That's a verified placement — and verified placements are what pay.</p></details>
+    <details><summary>Where do the flyers go?</summary>
+      <p>Legal spots only — community boards, businesses that said yes, permitted kiosks. The app records the structure type of every placement, which protects you and keeps the whole operation clean.</p></details>
+  </div>
+  <div style="text-align:center;margin-top:52px">
+    <a class="btn stamp" href="field.html">CREATE A WORKER ACCOUNT</a>
+    <div class="mono" style="margin-top:14px;font-size:11px;color:var(--chalkmute)">Takes about 90 seconds. Phone + comfortable shoes required.</div>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>SCANMAP — offline ad intelligence</span>
+  <span>Long Beach, CA · © 2026</span>
+</div></footer>
+
+<script>
+/* tear-off tabs: each one tears away, then takes you to the application */
+(function(){
+  const holder=document.getElementById('tabs');
+  const torn=new Set([2,5]); // a couple already taken — someone beat you to it
+  for(let i=0;i<8;i++){
+    const b=document.createElement('button');
+    b.className='tab'+(torn.has(i)?' gone':'');
+    b.innerHTML='<span>APPLY →</span>';
+    b.setAttribute('aria-label','Apply for field work');
+    b.onclick=()=>{
+      b.classList.add('tearing');
+      setTimeout(()=>location.href='field.html',
+        matchMedia('(prefers-reduced-motion: reduce)').matches?0:420);
+    };
+    holder.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>
