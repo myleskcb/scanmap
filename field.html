@@ -96,7 +96,7 @@
   <div class="hdr">
     <div><div style="font-weight:700">SCAN<b style="color:var(--green)">MAP</b></div>
       <div class="mono" style="font-size:11px;color:var(--mute)" id="j-hello"></div></div>
-    <div class="stat mono"><b id="j-today">0</b><div style="font-size:10px;color:var(--mute)" data-t="verifiedtoday">VERIFIED TODAY</div></div>
+    <div class="stat mono"><b id="j-today">0</b><div style="font-size:10px;color:var(--mute)" data-t="verifiedtoday">VERIFIED TODAY</div><div style="font-size:11px;color:var(--green)" id="j-earn"></div></div>
     <button class="ghost" onclick="setLang(L==='en'?'es':'en')" id="langbtn2">ES</button>
     <button class="ghost" onclick="sb.auth.signOut().then(()=>location.reload())">⏻</button>
   </div>
@@ -123,6 +123,14 @@
   <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)">
     <span id="p-stoplabel"></span><button class="ghost" onclick="closeSheet()">✕</button></div>
   <div class="steps"><div id="st1"></div><div id="st2"></div><div id="st3"></div></div>
+
+  <!-- step 0: geofence gate -->
+  <div id="p-gate" class="hide" style="text-align:center;padding:6px 0 14px">
+    <div style="font-size:38px">📍</div>
+    <div style="font-weight:700;font-size:18px" data-t="toofar">Get closer to the pin</div>
+    <div class="bignum" id="g-dist">—</div>
+    <div class="mono" style="font-size:12px;color:var(--mute)" data-t="gatehint">Placement unlocks within 265 ft (0.05 mi) of the stop. Distance updates live as you walk.</div>
+  </div>
 
   <!-- step 1: scan -->
   <div id="p-scan">
@@ -152,6 +160,19 @@
   </div>
 </div>
 
+<!-- FULFILLMENT SHEET -->
+<div class="sheet hide" id="fsheet">
+  <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)">
+    <span>📦</span><button class="ghost" onclick="$('fsheet').classList.add('hide')">✕</button></div>
+  <div style="font-weight:700;font-size:18px" data-t="pickuptitle">Where should we print your flyers?</div>
+  <div class="mono" style="font-size:12px;color:var(--mute);margin:4px 0 14px" data-t="pickuphint">Pick a store near you — your manager sends the print order there and you pick it up. Or have them shipped.</div>
+  <button onclick="findStores()" data-t="findstores">📍 Find Staples / Office Depot near me</button>
+  <div id="storelist" style="margin-top:10px"></div>
+  <label data-t="orship">Or ship them to my address</label>
+  <input id="ship-addr" placeholder="123 Main St, Long Beach CA 90802">
+  <button style="margin-top:10px" onclick="saveShipping()" data-t="saveship">Save shipping address</button>
+</div>
+
 <div class="flash ok hide" id="flash-ok"><div>✓</div><div data-t="verified">VERIFIED</div></div>
 <div class="flash bad hide" id="flash-bad"><div>✕</div><div id="flash-bad-msg">WRONG QR</div></div>
 
@@ -159,7 +180,13 @@
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
 let me=null,signup=false,L='en',job=null,stops=[],map=null,markers=[],active=null,scanner=null,
-    sel={structure:null,photoBlob:null,scannedStop:null},todayCount=0;
+    sel={structure:null,photoBlob:null,scannedStop:null},todayCount=0,myAssignment=null,geoWatch=null;
+const GEOFENCE_M=80; // 0.05 mi ≈ 80 meters
+function distM(lat1,lng1,lat2,lng2){
+  const R=6371000,r=x=>x*Math.PI/180,dLat=r(lat2-lat1),dLng=r(lng2-lng1);
+  const h=Math.sin(dLat/2)**2+Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
 
 /* ── i18n ── */
 const T={
@@ -185,6 +212,18 @@ const T={
   nojobs:{en:'No jobs assigned yet. Your manager assigns campaigns from the Command dashboard.',
           es:'Sin trabajos asignados. Tu gerente asigna campañas desde el panel Command.'},
   wrongqr:{en:'WRONG QR',es:'QR INCORRECTO'},
+  toofar:{en:'Get closer to the pin',es:'Acércate al pin'},
+  gatehint:{en:'Placement unlocks within 265 ft (0.05 mi) of the stop. Distance updates live as you walk.',
+            es:'La colocación se desbloquea a 80 m (0.05 mi) de la parada. La distancia se actualiza mientras caminas.'},
+  pickuptitle:{en:'Where should we print your flyers?',es:'¿Dónde imprimimos tus volantes?'},
+  pickuphint:{en:'Pick a store near you — your manager sends the print order there and you pick it up. Or have them shipped.',
+              es:'Elige una tienda cercana — tu gerente envía la orden de impresión y tú los recoges. O pide envío.'},
+  findstores:{en:'📍 Find Staples / Office Depot near me',es:'📍 Buscar Staples / Office Depot cerca'},
+  orship:{en:'Or ship them to my address',es:'O envíalos a mi dirección'},
+  saveship:{en:'Save shipping address',es:'Guardar dirección de envío'},
+  setpickup:{en:'📦 Set flyer pickup / shipping',es:'📦 Elegir recogida / envío de volantes'},
+  pickupset:{en:'Pickup / shipping saved — your manager has the details',es:'Recogida / envío guardado — tu gerente tiene los detalles'},
+  perflyer:{en:'/flyer',es:'/volante'},
 };
 const structures=[
   ['community_board',{en:'Community board',es:'Tablero comunitario'}],
@@ -230,9 +269,11 @@ async function boot(){
 }
 async function loadToday(){
   const start=new Date();start.setHours(0,0,0,0);
-  const {count}=await sb.from('placements').select('id',{count:'exact',head:true})
+  const {data}=await sb.from('placements').select('id,campaigns(pay_per_flyer_cents)')
     .eq('worker_id',me.id).gte('placed_at',start.toISOString());
-  todayCount=count||0;$('j-today').textContent=todayCount;
+  todayCount=(data||[]).length;$('j-today').textContent=todayCount;
+  const cents=(data||[]).reduce((t,p)=>t+(p.campaigns?.pay_per_flyer_cents||0),0);
+  $('j-earn').textContent=cents?'$'+(cents/100).toFixed(2):'';
 }
 
 /* ── jobs list ── */
@@ -248,11 +289,12 @@ async function loadJobs(){
     const {count:total}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id);
     const {count:done}=await sb.from('stops').select('id',{count:'exact',head:true}).eq('campaign_id',c.id).eq('status','verified');
     const pct=total?Math.round(done/total*100):0;
+    const pay=c.pay_per_flyer_cents?`<span style="color:var(--green)">$${(c.pay_per_flyer_cents/100).toFixed(2)}${t('perflyer')}</span> · `:'';
     list.insertAdjacentHTML('beforeend',`<div class="card">
       <div style="display:flex;justify-content:space-between;gap:10px">
         <b>${esc(c.name)}</b><span class="tag green">${c.mode}</span></div>
       <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
-        ${a.flyers_assigned} ${t('flyers')} · ${done||0}/${total||0} ${t('stopsw')}</div>
+        ${pay}${a.flyers_assigned} ${t('flyers')} · ${done||0}/${total||0} ${t('stopsw')}</div>
       <div class="bar"><div style="width:${pct}%"></div></div>
       <button class="primary" style="margin-top:12px" onclick='openJob(${JSON.stringify(c.id)})'>${t('open')}</button>
     </div>`);
@@ -263,6 +305,9 @@ async function loadJobs(){
 async function openJob(cid){
   const {data:c}=await sb.from('campaigns').select('*').eq('id',cid).single();
   job=c; show('s-job');
+  const {data:asg}=await sb.from('assignments').select('*')
+    .eq('campaign_id',cid).eq('worker_id',me.id).maybeSingle();
+  myAssignment=asg;
   $('m-name').textContent=c.name;
   $('m-meta').textContent=`${c.client_type} · ${c.mode}`;
   await refreshStops();
@@ -295,14 +340,55 @@ function drawMarkers(){
 }
 function drawActions(){
   const a=$('m-actions');a.innerHTML='';
+  if(myAssignment&&!myAssignment.fulfillment_method)
+    a.innerHTML+=`<button onclick="$('fsheet').classList.remove('hide')">${t('setpickup')}</button>`;
   if(job.mode==='freestyle'){
-    a.innerHTML=`<button class="primary" onclick="startFreestyle()">${t('freestyle')}</button>`;
+    a.innerHTML+=`<button class="primary" onclick="startFreestyle()">${t('freestyle')}</button>`;
   }else{
     const next=stops.find(s=>s.status==='todo');
-    a.innerHTML=next
+    a.innerHTML+=next
       ?`<button class="primary" onclick="startStop('${next.id}')">${t('startnext')} — ${esc(next.label)}</button>`
       :`<div class="mono" style="text-align:center;color:var(--green);padding:6px">✓ ${t('jobdone')}</div>`;
   }
+}
+
+/* ── print fulfillment (pickup store or shipping) ── */
+async function findStores(){
+  $('storelist').innerHTML='<div class="mono" style="color:var(--mute);font-size:12px">Locating…</div>';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const {latitude:lat,longitude:lng}=pos.coords;
+    const q=async term=>{
+      const r=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(term)}.json?proximity=${lng},${lat}&types=poi&limit=4&access_token=${MAPBOX_TOKEN}`);
+      const j=await r.json(); return j.features||[];
+    };
+    const feats=[...await q('Staples'),...await q('Office Depot')];
+    feats.sort((a,b)=>distM(lat,lng,a.center[1],a.center[0])-distM(lat,lng,b.center[1],b.center[0]));
+    $('storelist').innerHTML='';
+    feats.slice(0,5).forEach(f=>{
+      const mi=(distM(lat,lng,f.center[1],f.center[0])/1609).toFixed(1);
+      const b=document.createElement('button');
+      b.style.cssText='text-align:left;margin-bottom:8px';
+      b.innerHTML=`<b>${esc(f.text)}</b> · ${mi} mi<br><span style="color:var(--mute);font-size:11px">${esc(f.place_name)}</span>`;
+      b.onclick=()=>savePickup(f.text,f.place_name);
+      $('storelist').appendChild(b);
+    });
+    if(!feats.length)$('storelist').innerHTML='<div class="mono" style="color:var(--amber);font-size:12px">No stores found nearby — use shipping below</div>';
+  },()=>toast('Enable location access to find stores'));
+}
+async function savePickup(name,address){
+  const {error}=await sb.from('assignments').update({fulfillment_method:'pickup',
+    pickup_location:name,pickup_address:address,shipping_address:null}).eq('id',myAssignment.id);
+  if(error)return toast(error.message);
+  myAssignment.fulfillment_method='pickup';
+  $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
+}
+async function saveShipping(){
+  const addr=$('ship-addr').value.trim(); if(!addr)return;
+  const {error}=await sb.from('assignments').update({fulfillment_method:'shipping',
+    shipping_address:addr,pickup_location:null,pickup_address:null}).eq('id',myAssignment.id);
+  if(error)return toast(error.message);
+  myAssignment.fulfillment_method='shipping';
+  $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
 }
 
 /* ── placement flow ── */
@@ -316,14 +402,31 @@ function buildStructGrid(){
 }
 function setSteps(n){['st1','st2','st3'].forEach((id,i)=>$(id).classList.toggle('on',i<n));}
 function openSheet(){$('sheet').classList.remove('hide');}
-function closeSheet(){$('sheet').classList.add('hide');stopScanner();}
+function closeSheet(){$('sheet').classList.add('hide');stopScanner();clearGate();}
 function startStop(stopId){
   active=stops.find(s=>s.id===stopId);
   sel={structure:null,photoBlob:null,scannedStop:null};
   $('p-stoplabel').textContent=`${t('placed')} · ${active.label}`;
-  $('p-scan').classList.remove('hide');$('p-struct').classList.add('hide');$('p-photo').classList.add('hide');
-  setSteps(1);openSheet();startScanner();
+  $('p-gate').classList.add('hide');$('p-scan').classList.add('hide');
+  $('p-struct').classList.add('hide');$('p-photo').classList.add('hide');
+  openSheet();
+  // optimized routes with a mapped pin: locked until within 0.05 mi
+  if(job.mode==='optimized'&&active.lat!=null){
+    $('p-gate').classList.remove('hide');setSteps(0);
+    clearGate();
+    geoWatch=navigator.geolocation.watchPosition(pos=>{
+      const d=distM(pos.coords.latitude,pos.coords.longitude,active.lat,active.lng);
+      $('g-dist').textContent=d<1200?Math.round(d*3.28084)+' ft':(d/1609).toFixed(2)+' mi';
+      if(d<=GEOFENCE_M){clearGate();toScan();}
+    },()=>{$('g-dist').textContent='GPS?';toast('Enable location access to unlock placement');},
+    {enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+  }else toScan();
 }
+function toScan(){
+  $('p-gate').classList.add('hide');$('p-scan').classList.remove('hide');
+  setSteps(1);startScanner();
+}
+function clearGate(){if(geoWatch!=null){navigator.geolocation.clearWatch(geoWatch);geoWatch=null;}}
 async function startFreestyle(){
   // GPS ping → create a new stop at current location with next label in the 1A/2B/3C scheme
   navigator.geolocation.getCurrentPosition(async pos=>{

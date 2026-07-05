@@ -154,8 +154,11 @@
           </select>
           <label>Destination URL (where a scan sends people)</label>
           <input id="c-url" placeholder="https://your-landing-page.com">
-          <label>Flyer count</label><input id="c-count" type="number" value="50" oninput="calcPrice()">
-          <label>Price</label><input id="c-price" value="$350.00">
+          <label>Flyer count</label><input id="c-count" type="number" value="50" oninput="calcEcon()">
+          <label>Price charged to client (total)</label><input id="c-price" value="$350.00" oninput="calcEcon()">
+          <label>Worker pay per flyer</label><input id="c-pay" value="$0.75" oninput="calcEcon()">
+          <label>Print cost per flyer (COGS)</label><input id="c-cogs" value="$0.15" oninput="calcEcon()">
+          <div class="mono" id="c-econ" style="margin-top:12px;padding:12px;border:1px dashed var(--line);border-radius:4px;font-size:12px;line-height:1.8"></div>
           <label>Placement mode</label>
           <select id="c-mode">
             <option value="optimized">Optimized — pre-mapped pins, worker follows route</option>
@@ -236,7 +239,7 @@
       <h1>Field workers</h1>
       <div class="sub">Workers create their own accounts in the Field app. Assign them jobs from any campaign page.</div>
       <div class="card" style="padding:0;margin-top:16px"><table id="t-workers">
-        <thead><tr><th>Name</th><th>Verified placements</th><th>Active jobs</th><th>Joined</th></tr></thead>
+        <thead><tr><th>Name</th><th>Verified placements</th><th>Earned</th><th>Active jobs</th><th>Joined</th></tr></thead>
         <tbody></tbody></table></div>
     </section>
   </main>
@@ -283,7 +286,7 @@ function go(v){
   document.querySelectorAll('#topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
   $('v-'+v).classList.remove('hide');
   if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers();
-  if(v==='new')setTimeout(initMap,50);
+  if(v==='new'){setTimeout(initMap,50);calcEcon();}
 }
 
 /* ── DASHBOARD ── */
@@ -339,7 +342,16 @@ async function loadCamps(){
 }
 
 /* ── NEW CAMPAIGN + MAP ── */
-function calcPrice(){const n=+$('c-count').value||0;$('c-price').value='$'+(n*7).toFixed(2);}
+const money=s=>Math.round((parseFloat(String(s).replace(/[^0-9.]/g,''))||0)*100); // "$0.75" -> 75 cents
+function calcEcon(){
+  const n=+$('c-count').value||0;
+  const price=money($('c-price').value), pay=money($('c-pay').value), cogs=money($('c-cogs').value);
+  const revPer=n?price/n:0, profitPer=revPer-pay-cogs, total=profitPer*n;
+  $('c-econ').innerHTML=
+    `Revenue/flyer: <span style="color:var(--ink)">$${(revPer/100).toFixed(2)}</span><br>`+
+    `− Worker pay: $${(pay/100).toFixed(2)} · − Print cost: $${(cogs/100).toFixed(2)}<br>`+
+    `<b style="color:${profitPer>=0?'var(--green)':'var(--red)'}">Profit/flyer: $${(profitPer/100).toFixed(2)} · Campaign profit: $${(total/100).toFixed(2)}</b>`;
+}
 function initMap(){
   if(map)return; mapboxgl.accessToken=MAPBOX_TOKEN;
   map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/dark-v11',
@@ -360,7 +372,9 @@ async function saveCampaign(){
   const {data:camp,error}=await sb.from('campaigns').insert({
     name, client_type:$('c-type').value, destination_url:url,
     flyer_count:+$('c-count').value||50,
-    price_cents:Math.round(parseFloat($('c-price').value.replace(/[^0-9.]/g,''))*100)||0,
+    price_cents:money($('c-price').value),
+    pay_per_flyer_cents:money($('c-pay').value),
+    cogs_per_flyer_cents:money($('c-cogs').value),
     mode:$('c-mode').value, created_by:me.id,
     center_lat:newPins[0]?.lat??33.77, center_lng:newPins[0]?.lng??-118.19,
   }).select().single();
@@ -380,13 +394,32 @@ async function openCampaign(id){
   document.querySelectorAll('main>section').forEach(s=>s.classList.add('hide'));
   $('v-detail').classList.remove('hide');
   $('d-name').textContent=c.name;
-  $('d-meta').textContent=`${c.client_type} · ${c.mode} · ${c.flyer_count} flyers · $${(c.price_cents/100).toFixed(2)}`;
+  const profitPer=(c.price_cents/(c.flyer_count||1))-(c.pay_per_flyer_cents||0)-(c.cogs_per_flyer_cents||0);
+  $('d-meta').innerHTML=`${c.client_type} · ${c.mode} · ${c.flyer_count} flyers · $${(c.price_cents/100).toFixed(2)}`+
+    ` · pay $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} · print $${((c.cogs_per_flyer_cents||0)/100).toFixed(2)}`+
+    ` · <span style="color:${profitPer>=0?'var(--green)':'var(--red)'}">profit $${(profitPer/100).toFixed(2)}/flyer</span>`;
   $('d-activate').textContent=c.status==='active'?'Mark done':'Activate';
   // workers dropdown
   const {data:wk}=await sb.from('profiles').select('id,full_name').eq('role','worker');
   $('d-worker').innerHTML=(wk||[]).map(w=>`<option value="${w.id}">${esc(w.full_name||'(no name)')}</option>`).join('')||'<option>No workers yet</option>';
-  const {data:asg}=await sb.from('assignments').select('flyers_assigned,profiles(full_name)').eq('campaign_id',id);
-  $('d-assigned').textContent=(asg||[]).map(a=>`Assigned: ${a.profiles?.full_name} (${a.flyers_assigned} flyers)`).join(' · ')||'No one assigned yet.';
+  const {data:asg}=await sb.from('assignments')
+    .select('worker_id,flyers_assigned,fulfillment_method,pickup_location,pickup_address,shipping_address,profiles(full_name)')
+    .eq('campaign_id',id);
+  const {data:allPlc}=await sb.from('placements').select('worker_id').eq('campaign_id',id);
+  const perWorker={}; (allPlc||[]).forEach(p=>perWorker[p.worker_id]=(perWorker[p.worker_id]||0)+1);
+  $('d-assigned').innerHTML=(asg||[]).map(a=>{
+    const done=perWorker[a.worker_id]||0;
+    const owed=done*(c.pay_per_flyer_cents||0)/100;
+    const ful=a.fulfillment_method==='pickup'
+      ?`📦 Pickup: <b>${esc(a.pickup_location)}</b><br><span style="color:var(--mute)">${esc(a.pickup_address)}</span>`
+      :a.fulfillment_method==='shipping'
+      ?`📦 Ship to: <b>${esc(a.shipping_address)}</b>`
+      :`<span style="color:var(--amber)">📦 Worker hasn't set print pickup/shipping yet</span>`;
+    return `<div style="border-top:1px solid var(--line);padding:10px 0;line-height:1.7">
+      <b>${esc(a.profiles?.full_name)}</b> · ${a.flyers_assigned} flyers assigned<br>
+      ${done} verified × $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} = <b style="color:var(--green)">$${owed.toFixed(2)} owed</b><br>
+      ${ful}</div>`;
+  }).join('')||'No one assigned yet.';
   // stops + scans + placements
   const [{data:stops},{data:scans},{data:plc}]=await Promise.all([
     sb.from('stops').select('*').eq('campaign_id',id).order('seq'),
@@ -566,15 +599,18 @@ async function downloadFlyerBatch(){
 /* ── WORKERS ── */
 async function loadWorkers(){
   const {data:wk}=await sb.from('profiles').select('*').eq('role','worker');
-  const {data:plc}=await sb.from('placements').select('worker_id');
+  const {data:plc}=await sb.from('placements').select('worker_id,campaigns(pay_per_flyer_cents)');
   const {data:asg}=await sb.from('assignments').select('worker_id');
-  const pc={},ac={};
-  (plc||[]).forEach(p=>pc[p.worker_id]=(pc[p.worker_id]||0)+1);
+  const pc={},ec={},ac={};
+  (plc||[]).forEach(p=>{pc[p.worker_id]=(pc[p.worker_id]||0)+1;
+    ec[p.worker_id]=(ec[p.worker_id]||0)+(p.campaigns?.pay_per_flyer_cents||0);});
   (asg||[]).forEach(a=>ac[a.worker_id]=(ac[a.worker_id]||0)+1);
   const tb=$('t-workers').querySelector('tbody'); tb.innerHTML='';
   (wk||[]).forEach(w=>tb.insertAdjacentHTML('beforeend',`<tr>
     <td><b>${esc(w.full_name||'(no name)')}</b></td>
-    <td style="color:var(--green)">${pc[w.id]||0}</td><td>${ac[w.id]||0}</td>
+    <td style="color:var(--green)">${pc[w.id]||0}</td>
+    <td style="color:var(--green)">$${((ec[w.id]||0)/100).toFixed(2)}</td>
+    <td>${ac[w.id]||0}</td>
     <td>${new Date(w.created_at).toLocaleDateString()}</td></tr>`));
 }
 
