@@ -105,6 +105,7 @@
     <nav class="mono">
       <button data-v="dash" class="active" onclick="go('dash')">Dashboard</button>
       <button data-v="camps" onclick="go('camps')">Campaigns</button>
+      <button data-v="analytics" onclick="go('analytics')">Analytics</button>
       <button data-v="new" onclick="go('new')">+ New Campaign</button>
       <button data-v="workers" onclick="go('workers')">Workers</button>
     </nav>
@@ -232,6 +233,38 @@
       </div>
     </section>
 
+    <!-- ANALYTICS / HEATMAP -->
+    <section id="v-analytics" class="hide">
+      <div class="row" style="justify-content:space-between">
+        <div><h1>Scan intelligence</h1>
+          <div class="sub"><span class="dot"></span> heat = real scans · verification scans excluded</div></div>
+        <select id="an-camp" style="width:auto;min-width:240px" onchange="renderAnalytics()"></select>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="num" id="an-scans">—</div><div class="lbl">Real scans</div></div>
+        <div class="kpi"><div class="num" id="an-convs">—</div><div class="lbl">Conversions</div></div>
+        <div class="kpi"><div class="num" id="an-rate">—</div><div class="lbl">Scan → conversion</div></div>
+        <div class="kpi"><div class="num" id="an-top">—</div><div class="lbl">Hottest stop</div></div>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <button id="an-heatbtn" onclick="toggleHeat()">Heatmap: ON</button>
+        <button onclick="eagleView()">◇ Eagle view</button>
+        <button onclick="streetView()">⌖ Street view</button>
+        <span class="sub">Click any pin for its numbers</span>
+      </div>
+      <div id="an-map" style="height:460px;border:1px solid var(--line);border-radius:4px"></div>
+      <div class="row" style="margin:18px 0 10px;justify-content:space-between">
+        <h2 style="margin:0">Location performance</h2>
+        <div class="row mono" style="font-size:11px">
+          <button style="padding:6px 12px" onclick="sortAnalytics('scans')">Sort: Scans</button>
+          <button style="padding:6px 12px" onclick="sortAnalytics('conv')">Sort: Conv %</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0"><table id="t-analytics">
+        <thead><tr><th>Stop</th><th>Structure</th><th>Real scans</th><th>Conversions</th><th>Conv %</th><th>Status</th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+
     <!-- WORKERS -->
     <section id="v-workers" class="hide">
       <h1>Field workers</h1>
@@ -284,6 +317,7 @@ function go(v){
   document.querySelectorAll('#topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
   $('v-'+v).classList.remove('hide');
   if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers();
+  if(v==='analytics')loadAnalyticsView();
   if(v==='new'){setTimeout(initMap,50);calcEcon();}
 }
 
@@ -594,6 +628,110 @@ async function downloadFlyerBatch(){
     a.download=currentCampaign.name.replace(/\W+/g,'_')+'_flyers.zip'; a.click();
     $('fb-status').textContent=stops.length+' print-ready flyers downloaded ✓';
   }catch(err){ $('fb-status').textContent='Error: '+err.message; }
+}
+
+/* ── ANALYTICS: heatmap + conversion intelligence ── */
+let anMap=null, anRows=[], anSort='scans', anPopup=null;
+async function loadAnalyticsView(){
+  const {data:camps}=await sb.from('campaigns').select('id,name,center_lat,center_lng').order('created_at',{ascending:false});
+  const sel=$('an-camp');
+  sel.innerHTML=(camps||[]).map(c=>`<option value="${c.id}" data-lat="${c.center_lat}" data-lng="${c.center_lng}">${esc(c.name)}</option>`).join('')
+    ||'<option>No campaigns yet</option>';
+  if(!camps?.length)return;
+  if(!anMap){
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    anMap=new mapboxgl.Map({container:'an-map',style:'mapbox://styles/mapbox/dark-v11',
+      center:[camps[0].center_lng||-118.19,camps[0].center_lat||33.77],zoom:13});
+    anMap.on('load',renderAnalytics);
+    anMap.on('click','an-pts',e=>{
+      const p=e.features[0].properties;
+      if(anPopup)anPopup.remove();
+      anPopup=new mapboxgl.Popup({closeButton:false})
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#111">
+          <b>${p.label}</b> · ${p.tag}<br>Scans: ${p.scans} · Conv: ${p.convs} (${p.rate}%)</div>`)
+        .addTo(anMap);
+    });
+  } else renderAnalytics();
+}
+async function renderAnalytics(){
+  if(!anMap||!anMap.isStyleLoaded()){setTimeout(renderAnalytics,300);return;}
+  const cid=$('an-camp').value; if(!cid)return;
+  const [{data:stops},{data:scans},convRes,{data:plc}]=await Promise.all([
+    sb.from('stops').select('*').eq('campaign_id',cid),
+    sb.from('scans').select('stop_id').eq('campaign_id',cid).eq('is_verification',false),
+    sb.from('conversions').select('stop_id').eq('campaign_id',cid),
+    sb.from('placements').select('stop_id,structure_type').eq('campaign_id',cid),
+  ]);
+  const convs=convRes.error?[]:(convRes.data||[]); // graceful before migration 4 runs
+  const sc={},cv={},st={};
+  scans?.forEach(s=>sc[s.stop_id]=(sc[s.stop_id]||0)+1);
+  convs.forEach(s=>cv[s.stop_id]=(cv[s.stop_id]||0)+1);
+  plc?.forEach(p=>st[p.stop_id]=p.structure_type);
+  const totScans=(scans||[]).length, totConvs=convs.length;
+  const max=Math.max(1,...(stops||[]).map(s=>sc[s.id]||0));
+  anRows=(stops||[]).map(s=>{
+    const n=sc[s.id]||0, k=cv[s.id]||0;
+    const share=n/max;
+    const tag=n===0?'UNSCANNED':share>=0.6?'🔥 HOT':share>=0.25?'WARM':'COLD';
+    return {label:s.label,lat:s.lat,lng:s.lng,scans:n,convs:k,
+      rate:n?+(k/n*100).toFixed(1):0,tag,structure:st[s.id]||'—'};
+  });
+  // KPIs
+  $('an-scans').textContent=totScans;
+  $('an-convs').textContent=convRes.error?'run mig. 4':totConvs;
+  $('an-rate').textContent=totScans?((totConvs/totScans*100).toFixed(1)+'%'):'—';
+  const top=[...anRows].sort((a,b)=>b.scans-a.scans)[0];
+  $('an-top').textContent=top&&top.scans?`${top.label} · ${top.scans}`:'—';
+  // heat + points on the map
+  const geo={type:'FeatureCollection',features:anRows.filter(r=>r.lat!=null).map(r=>({
+    type:'Feature',geometry:{type:'Point',coordinates:[r.lng,r.lat]},
+    properties:{label:r.label,scans:r.scans,convs:r.convs,rate:r.rate,tag:r.tag,
+      weight:r.scans/max}}))};
+  if(anMap.getSource('an-scans')) anMap.getSource('an-scans').setData(geo);
+  else{
+    anMap.addSource('an-scans',{type:'geojson',data:geo});
+    anMap.addLayer({id:'an-heat',type:'heatmap',source:'an-scans',paint:{
+      'heatmap-weight':['get','weight'],
+      'heatmap-intensity':['interpolate',['linear'],['zoom'],10,0.8,16,2.2],
+      'heatmap-radius':['interpolate',['linear'],['zoom'],10,24,16,70],
+      'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',0.15,'rgba(79,138,255,0.45)',0.45,'rgba(255,184,48,0.55)',
+        0.75,'rgba(170,255,0,0.65)',1,'rgba(170,255,0,0.95)'],
+      'heatmap-opacity':0.85}});
+    anMap.addLayer({id:'an-pts',type:'circle',source:'an-scans',paint:{
+      'circle-radius':6,'circle-stroke-width':1.5,'circle-stroke-color':'#0A0A0F',
+      'circle-color':['case',['==',['get','scans'],0],'#555',
+        ['>=',['get','weight'],0.6],'#AAFF00',
+        ['>=',['get','weight'],0.25],'#FFB830','#4F8AFF']}});
+    anMap.on('mouseenter','an-pts',()=>anMap.getCanvas().style.cursor='pointer');
+    anMap.on('mouseleave','an-pts',()=>anMap.getCanvas().style.cursor='');
+  }
+  eagleView(); sortAnalytics(anSort);
+}
+function toggleHeat(){
+  const vis=anMap.getLayoutProperty('an-heat','visibility')!=='none';
+  anMap.setLayoutProperty('an-heat','visibility',vis?'none':'visible');
+  $('an-heatbtn').textContent='Heatmap: '+(vis?'OFF':'ON');
+}
+function eagleView(){ // bird's-eye: flat, fitted to every pin
+  const pts=anRows.filter(r=>r.lat!=null); if(!pts.length)return;
+  const b=new mapboxgl.LngLatBounds();
+  pts.forEach(r=>b.extend([r.lng,r.lat]));
+  anMap.fitBounds(b,{padding:70,pitch:0,bearing:0,duration:800});
+}
+function streetView(){ anMap.easeTo({pitch:58,zoom:Math.max(anMap.getZoom(),15),duration:800}); }
+function sortAnalytics(by){
+  anSort=by;
+  const rows=[...anRows].sort((a,b)=>by==='conv'?(b.rate-a.rate||b.convs-a.convs):(b.scans-a.scans));
+  const tb=$('t-analytics').querySelector('tbody'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const cls=r.tag.includes('HOT')?'green':r.tag==='WARM'?'amber':r.tag==='UNSCANNED'?'red':'gray';
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td><b>${esc(r.label)}</b></td><td>${esc(r.structure)}</td>
+      <td style="color:var(--green)">${r.scans}</td><td>${r.convs}</td>
+      <td>${r.rate}%</td><td><span class="tag ${cls}">${r.tag}</span></td></tr>`);
+  });
 }
 
 /* ── WORKERS ── */
