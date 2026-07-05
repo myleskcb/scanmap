@@ -59,7 +59,7 @@
   .hero p b{color:var(--chalk)}
 
   /* the flyer */
-  .flyer{background:var(--paper);color:var(--ink);padding:30px 26px 0;transform:rotate(-2deg);
+  .flyer{background:var(--paper);color:var(--ink);padding:30px 26px 26px;transform:rotate(-2deg);
     box-shadow:0 24px 50px rgba(0,0,0,.55);position:relative;
     background-image:radial-gradient(rgba(0,0,0,.05) .5px,transparent .5px);background-size:5px 5px}
   .flyer:hover{transform:rotate(-.6deg)}
@@ -74,7 +74,7 @@
   .qrrow{display:flex;gap:16px;align-items:center;border-top:2px solid var(--ink);padding-top:16px}
   .qr{width:86px;height:86px;flex-shrink:0;background:var(--paper);border:2px solid var(--ink)}
   .flmap{width:100%;display:block;margin-top:16px;border:2px solid var(--ink);
-    filter:saturate(.85) contrast(1.02);min-height:120px;background:#e7e2d2}
+    filter:saturate(.85) contrast(1.02);min-height:210px;background:#e7e2d2}
   .flmap-cap{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;
     color:var(--inkmute);margin-top:6px}
   .qrmeta{font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:2;color:var(--ink)}
@@ -216,16 +216,7 @@
       </div>
     </div>
     <img id="fl-map" class="flmap" alt="Coverage map — Belmont Shore streets">
-    <div class="flmap-cap">COVERAGE — E 2ND ST · BELMONT SHORE · LONG BEACH</div>
-    <div class="tabs">
-      <div class="tab"><span>SCANMAP</span></div>
-      <div class="tab torn"><span>SCANMAP</span></div>
-      <div class="tab"><span>SCANMAP</span></div>
-      <div class="tab"><span>SCANMAP</span></div>
-      <div class="tab torn"><span>SCANMAP</span></div>
-      <div class="tab"><span>SCANMAP</span></div>
-      <div class="tab"><span>SCANMAP</span></div>
-    </div>
+    <div class="flmap-cap">COVERAGE — E 2ND ST &amp; PARK AVE · BELMONT SHORE</div>
   </div>
   <div>
     <div class="tagline">[ OFFLINE AD INTELLIGENCE ]</div>
@@ -371,9 +362,10 @@
     ctx.fillStyle='#141412';
     for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(qr.isDark(r,c))ctx.fillRect(c*cell,r*cell,cell+0.4,cell+0.4);
   }catch(e){}
-  // real homes & streets: Mapbox static image of E 2nd St, Belmont Shore
+  // real homes & streets: zoomed-in Belmont Shore with a red pin at 2nd & Park (location 8H)
   document.getElementById('fl-map').src=
-    'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/-118.1400,33.7592,15.1,0/640x220@2x?access_token='+MAPBOX_TOKEN;
+    'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/'+
+    'pin-l+ff3b3b(-118.1390,33.7593)/-118.1390,33.7593,16.1,0/640x400@2x?access_token='+MAPBOX_TOKEN;
 })();
 
 /* ── flyer scan counter: starts at 83, +1 after 17s, then +1 every 5 min. In-memory only — resets on refresh ── */
@@ -391,20 +383,21 @@
 /* ── Live sample map: E 2nd St, Belmont Shore, Long Beach ── */
 (function(){
   mapboxgl.accessToken=MAPBOX_TOKEN;
-  const CENTER=[-118.1420,33.7593]; // E 2nd St, Belmont Shore
+  const CENTER=[-118.1415,33.7597]; // Belmont Shore, Long Beach
+  // sample pins scattered on real corners — hover shows the cross streets
   const stops=[
-    ["1A","2nd & Livingston",-118.15230,33.75880,12,0.8],
-    ["2B","2nd & Covina",   -118.15040,33.75900,41,2.1],
-    ["3C","2nd & Glendora", -118.14850,33.75915,88,4.4],
-    ["4D","2nd & Granada",  -118.14660,33.75925,157,7.2],
-    ["5E","2nd & Argonne",  -118.14470,33.75930,236,9.8],
-    ["6F","2nd & La Verne", -118.14280,33.75935,412,13.1],
-    ["7G","2nd & Nieto",    -118.14090,33.75935,689,17.6],
-    ["8H","2nd & Park Ave", -118.13900,33.75930,904,21.0],
-    ["9I","2nd & Prospect", -118.13710,33.75925,536,14.2],
-    ["10J","2nd & Quincy",  -118.13520,33.75915,318,8.9],
-    ["11K","2nd & Roycroft",-118.13330,33.75900,164,5.5],
-    ["12L","2nd & Santa Ana",-118.13140,33.75885,63,2.8],
+    ["1A","Ocean Blvd & Granada Ave",  -118.1468,33.7566, 21, 1.2],
+    ["2B","Livingston Dr & Prospect Ave",-118.1448,33.7614, 58, 3.0],
+    ["3C","E 2nd St & Glendora Ave",   -118.1485,33.7591,102, 4.9],
+    ["4D","E 1st St & Argonne Ave",    -118.1444,33.7576, 77, 3.8],
+    ["5E","Division St & La Verne Ave",-118.1427,33.7583,301, 9.1],
+    ["6F","E 2nd St & Corona Ave",     -118.1338,33.7587,213, 7.4],
+    ["7G","E 2nd St & Nieto Ave",      -118.1409,33.7594,655,16.9],
+    ["8H","E 2nd St & Park Ave",       -118.1390,33.7593,890,21.0],
+    ["9I","E 1st St & Roycroft Ave",   -118.1372,33.7580,158, 6.2],
+    ["10J","E Colorado St & Roycroft Ave",-118.1373,33.7638,36, 1.7],
+    ["11K","Ocean Blvd & Bay Shore Ave",-118.1292,33.7551, 44, 2.0],
+    ["12L","E 3rd St & Termino Ave",   -118.1522,33.7639, 12, 0.6],
   ];
   const max=Math.max(...stops.map(s=>s[4]));
   document.getElementById('lv-count').textContent=stops.reduce((t,s)=>t+s[4],0).toLocaleString();
@@ -414,9 +407,9 @@
     properties:{label:s[0],name:s[1],scans:s[4],conv:s[5],w:s[4]/max,last:ago[i%ago.length]}}))};
 
   const map=new mapboxgl.Map({container:'heromap',style:'mapbox://styles/mapbox/dark-v11',
-    center:CENTER,zoom:14.6,pitch:38,bearing:-8});
-  map.scrollZoom.disable();
-  map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
+    center:CENTER,zoom:14.3,pitch:0,bearing:0}); // eagle view, locked
+  ['scrollZoom','dragPan','dragRotate','boxZoom','doubleClickZoom','touchZoomRotate','keyboard']
+    .forEach(h=>map[h].disable());
 
   map.on('load',()=>{
     map.addSource('demo',{type:'geojson',data:geo});
