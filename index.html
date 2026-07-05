@@ -150,6 +150,11 @@
       <div class="grid2" style="margin-top:18px">
         <div class="card">
           <label>Campaign name</label><input id="c-name" placeholder="Belmont Shore — Phone Buyback Q3">
+          <label>Campaign location (ZIP code or city)</label>
+          <div class="row" style="gap:8px">
+            <input id="c-zip" placeholder="90803" style="flex:1" onkeydown="if(event.key==='Enter')locateZip()">
+            <button onclick="locateZip()" style="width:auto;flex-shrink:0">⌖ Locate</button>
+          </div>
           <label>Client type</label>
           <select id="c-type">
             <option value="business">Local business</option>
@@ -160,6 +165,14 @@
           </select>
           <label>Destination URL (where a scan sends people)</label>
           <input id="c-url" placeholder="https://your-landing-page.com">
+          <label>Pricing preset</label>
+          <select id="c-preset" onchange="applyPreset()">
+            <option value="">Custom — enter your own numbers</option>
+            <option value="25|8">Premium — 25 flyers @ $8/ad = $200</option>
+            <option value="50|7" selected>Local — 50 flyers @ $7/ad = $350</option>
+            <option value="100|5">Standard — 100 flyers @ $5/ad = $500</option>
+            <option value="200|4">Volume — 200 flyers @ $4/ad = $800</option>
+          </select>
           <label>Campaign letter (each campaign owns one letter — stops become 1A, 2A, 3A…)</label>
           <select id="c-letter" onchange="relabelPins()"></select>
           <label>Flyer count</label><input id="c-count" type="number" value="50" oninput="calcEcon()">
@@ -270,6 +283,26 @@
       <div class="card" style="padding:0"><table id="t-analytics">
         <thead><tr><th>Stop</th><th>Structure</th><th>Real scans</th><th>Conversions</th><th>Conv %</th><th>Status</th></tr></thead>
         <tbody></tbody></table></div>
+
+      <details class="card" style="margin-top:18px">
+        <summary class="mono" style="cursor:pointer;color:var(--green);font-size:13px">▸ Conversion tracking — install on any website</summary>
+        <div class="sub" style="margin:12px 0">Works on any site — custom-built, web-designer built, Wix, WordPress, Shopify. Two ways to install: paste the snippet, or add the plugin file. Then mark what counts as a conversion.</div>
+        <label>Your conversion endpoint</label>
+        <input id="cv-url" readonly onclick="this.select()">
+        <label>Option 1 — copy-paste snippet (goes right before &lt;/body&gt;)</label>
+        <pre id="cv-snip" class="mono" style="background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:12px;font-size:11px;line-height:1.6;overflow:auto;max-height:220px;white-space:pre-wrap"></pre>
+        <div class="row" style="margin-top:10px">
+          <button onclick="copySnippet()">⧉ Copy snippet</button>
+          <button onclick="downloadTracker()">↓ Option 2 — download scanmap-tracker.js plugin</button>
+        </div>
+        <div class="sub" style="margin-top:12px;line-height:1.9">
+          <b style="color:var(--ink)">Marking the conversion (either option):</b><br>
+          · Add <span class="mono" style="color:var(--green)">data-scanmap-convert</span> to your lead form or buy button — fires automatically on submit/click<br>
+          · Or add <span class="mono" style="color:var(--green)">data-scanmap-thankyou</span> to the &lt;body&gt; tag of a thank-you page — fires on page load<br>
+          · Or call <span class="mono" style="color:var(--green)">scanmapConvert()</span> anywhere in your own code<br>
+          For the plugin file: upload scanmap-tracker.js to the site and add <span class="mono" style="color:var(--green)">&lt;script src="scanmap-tracker.js"&gt;&lt;/script&gt;</span> before &lt;/body&gt;.
+        </div>
+      </details>
     </section>
 
     <!-- WORKERS -->
@@ -335,7 +368,7 @@ function go(v){
   document.querySelectorAll('#topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
   $('v-'+v).classList.remove('hide');
   if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers();
-  if(v==='analytics')loadAnalyticsView();
+  if(v==='analytics'){loadAnalyticsView();fillConvSetup();}
   if(v==='new'){setTimeout(initMap,50);calcEcon();fillLetterSelect();}
 }
 
@@ -392,6 +425,25 @@ async function loadCamps(){
 }
 
 /* ── NEW CAMPAIGN + MAP ── */
+let geoCenter=null;
+async function locateZip(){
+  const q=$('c-zip').value.trim(); if(!q)return;
+  try{
+    const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(q)+
+      '.json?country=US&limit=1&access_token='+MAPBOX_TOKEN);
+    const j=await r.json(); const f=j.features&&j.features[0];
+    if(!f)return toast('Location not found — try a ZIP or "city, state"');
+    initMap(); geoCenter={lng:f.center[0],lat:f.center[1]};
+    map.flyTo({center:f.center,zoom:14,duration:1200});
+    toast('Map centered: '+f.place_name);
+  }catch(e){toast('Location lookup failed');}
+}
+function applyPreset(){
+  const v=$('c-preset').value; if(!v)return calcEcon();
+  const [count,rate]=v.split('|').map(Number);
+  $('c-count').value=count; $('c-price').value='$'+(count*rate).toFixed(2);
+  calcEcon();
+}
 const money=s=>Math.round((parseFloat(String(s).replace(/[^0-9.]/g,''))||0)*100); // "$0.75" -> 75 cents
 function calcEcon(){
   const n=+$('c-count').value||0;
@@ -427,7 +479,7 @@ async function saveCampaign(){
     cogs_per_flyer_cents:money($('c-cogs').value),
     letter:$('c-letter').value||'A',
     mode:$('c-mode').value, created_by:me.id,
-    center_lat:newPins[0]?.lat??33.77, center_lng:newPins[0]?.lng??-118.19,
+    center_lat:newPins[0]?.lat??geoCenter?.lat??33.77, center_lng:newPins[0]?.lng??geoCenter?.lng??-118.19,
   }).select().single();
   if(error)return toast(error.message);
   if(newPins.length){
@@ -765,6 +817,49 @@ function sortAnalytics(by){
       <td style="color:var(--green)">${r.scans}</td><td>${r.convs}</td>
       <td>${r.rate}%</td><td><span class="tag ${cls}">${r.tag}</span></td></tr>`);
   });
+}
+
+/* ── CONVERSION TRACKING SETUP ── */
+function trackerCore(){
+  const u=SUPABASE_URL+'/functions/v1/convert';
+  return `(function(){
+  var CONVERT_URL="${u}";
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.get("sm_c"))localStorage.setItem("sm_attr",JSON.stringify({c:p.get("sm_c"),s:p.get("sm_s"),t:Date.now()}));
+  }catch(e){}
+  window.scanmapConvert=function(){
+    try{
+      var a=JSON.parse(localStorage.getItem("sm_attr")||"null");
+      if(!a||!a.c)return;
+      if(Date.now()-a.t>7*24*3600*1000)return;
+      fetch(CONVERT_URL+"?c="+a.c+(a.s?"&s="+a.s:""),{mode:"no-cors"});
+      localStorage.removeItem("sm_attr");
+    }catch(e){}
+  };
+  document.addEventListener("click",function(e){
+    if(e.target&&e.target.closest&&e.target.closest("[data-scanmap-convert]"))window.scanmapConvert();
+  },true);
+  document.addEventListener("submit",function(e){
+    if(e.target&&e.target.matches&&e.target.matches("form[data-scanmap-convert]"))window.scanmapConvert();
+  },true);
+  function ty(){if(document.body&&document.body.hasAttribute("data-scanmap-thankyou"))window.scanmapConvert();}
+  document.readyState==="loading"?document.addEventListener("DOMContentLoaded",ty):ty();
+})();`;
+}
+function fillConvSetup(){
+  if(!$('cv-url'))return;
+  $('cv-url').value=SUPABASE_URL+'/functions/v1/convert';
+  $('cv-snip').textContent='<scr'+'ipt>\n'+trackerCore()+'\n</scr'+'ipt>';
+}
+async function copySnippet(){
+  try{await navigator.clipboard.writeText($('cv-snip').textContent);toast('Snippet copied — paste before </body>');}
+  catch(e){toast('Copy failed — select the text manually');}
+}
+function downloadTracker(){
+  const blob=new Blob(['/* ScanMap conversion tracker — include with <scr'+'ipt src="scanmap-tracker.js"></scr'+'ipt> */\n'+trackerCore()],
+    {type:'text/javascript'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scanmap-tracker.js';a.click();
 }
 
 /* ── WORKERS ── */
