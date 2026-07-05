@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ScanMap Command — Campaign Control</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -22,7 +22,10 @@
   button{font-family:'JetBrains Mono',monospace;cursor:pointer;background:none;border:1px solid var(--line);
     color:var(--ink);padding:10px 16px;font-size:13px;border-radius:4px;transition:border-color .15s}
   button:hover{border-color:var(--green)}
-  button.primary{background:var(--green);color:#000;border-color:var(--green);font-weight:700}
+  button.primary{background:var(--green);color:#000;border:2px solid #000;font-weight:700;
+    box-shadow:3px 3px 0 #000;border-radius:2px}
+  button.primary:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000;border-color:#000}
+  button.primary:active{transform:translate(1px,1px);box-shadow:2px 2px 0 #000}
   button.danger:hover{border-color:var(--red);color:var(--red)}
   input,select,textarea{background:var(--surface);border:1px solid var(--line);color:var(--ink);
     padding:11px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:4px;width:100%}
@@ -43,14 +46,16 @@
   /* layout */
   #topbar{display:flex;align-items:center;gap:24px;padding:14px 24px;border-bottom:1px solid var(--line);
     background:rgba(10,10,15,.92);position:sticky;top:0;z-index:50;backdrop-filter:blur(6px)}
-  #topbar .logo{font-weight:700;letter-spacing:-.02em;font-size:17px}
+  #topbar .logo{font-family:'Archivo Black',sans-serif;letter-spacing:.01em;font-size:16px}
   #topbar .logo b{color:var(--green)}
   #topbar nav{display:flex;gap:4px;flex:1}
   #topbar nav button{border:none;color:var(--mute);padding:8px 12px}
   #topbar nav button.active{color:var(--green)}
   main{max-width:1200px;margin:0 auto;padding:28px 24px 80px}
-  h1{font-size:26px;margin-bottom:4px;letter-spacing:-.02em}
-  h2{font-size:16px;margin:26px 0 12px}
+  h1{font-family:'Archivo Black',sans-serif;font-size:22px;margin-bottom:4px;
+    text-transform:uppercase;letter-spacing:.01em}
+  h2{font-family:'Archivo Black',sans-serif;font-size:13px;margin:26px 0 12px;
+    text-transform:uppercase;letter-spacing:.06em}
   .sub{color:var(--mute);font-size:12px;font-family:'JetBrains Mono',monospace}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:20px 0}
   .kpi{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px}
@@ -82,7 +87,7 @@
 <div id="auth">
   <div style="margin-bottom:26px">
     <div class="mono" style="color:var(--green);font-size:11px;letter-spacing:.15em">[ CAMPAIGN CONTROL ]</div>
-    <div style="font-size:30px;font-weight:700;margin-top:6px">SCAN<b style="color:var(--green)">MAP</b> COMMAND</div>
+    <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin-top:6px">SCAN<b style="color:var(--green)">MAP</b> COMMAND</div>
     <div class="sub" style="margin-top:6px">Business side — build campaigns, print QR batches, assign field workers, track scans.</div>
   </div>
   <div class="card">
