@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScanMap Command — Campaign Control</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#0A0A0F; --surface:#13131A; --surface2:#1A1A24; --line:#26262F;
+    --ink:#E8E8E0; --mute:#8B8B95; --green:#AAFF00; --amber:#FFB830; --red:#FF4D4D; --blue:#4F8AFF;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;
+    background-image:radial-gradient(circle,#1c1c26 1px,transparent 1px);background-size:28px 28px;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+  button{font-family:'JetBrains Mono',monospace;cursor:pointer;background:none;border:1px solid var(--line);
+    color:var(--ink);padding:10px 16px;font-size:13px;border-radius:4px;transition:border-color .15s}
+  button:hover{border-color:var(--green)}
+  button.primary{background:var(--green);color:#000;border:2px solid #000;font-weight:700;
+    box-shadow:3px 3px 0 #000;border-radius:2px}
+  button.primary:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000;border-color:#000}
+  button.primary:active{transform:translate(1px,1px);box-shadow:2px 2px 0 #000}
+  button.danger:hover{border-color:var(--red);color:var(--red)}
+  input,select,textarea{background:var(--surface);border:1px solid var(--line);color:var(--ink);
+    padding:11px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;border-radius:4px;width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--green)}
+  label{display:block;font-size:11px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase;
+    margin:14px 0 6px;font-family:'JetBrains Mono',monospace}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:20px}
+  table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px}
+  th{color:var(--mute);text-align:left;font-weight:400;padding:8px 10px;border-bottom:1px solid var(--line);
+    text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+  td{padding:10px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:var(--surface2)}
+  .tag{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:3px;font-size:10px;text-transform:uppercase}
+  .tag.green{border-color:var(--green);color:var(--green)}
+  .tag.amber{border-color:var(--amber);color:var(--amber)}
+  .tag.gray{color:var(--mute)}
+  .tag.red{border-color:var(--red);color:var(--red)}
+  /* layout */
+  #topbar{display:flex;align-items:center;gap:24px;padding:14px 24px;border-bottom:1px solid var(--line);
+    background:rgba(10,10,15,.92);position:sticky;top:0;z-index:50;backdrop-filter:blur(6px)}
+  #topbar .logo{font-family:'Archivo Black',sans-serif;letter-spacing:.01em;font-size:16px}
+  #topbar .logo b{color:var(--green)}
+  #topbar nav{display:flex;gap:4px;flex:1}
+  #topbar nav button{border:none;color:var(--mute);padding:8px 12px}
+  #topbar nav button.active{color:var(--green)}
+  main{max-width:1200px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-family:'Archivo Black',sans-serif;font-size:22px;margin-bottom:4px;
+    text-transform:uppercase;letter-spacing:.01em}
+  h2{font-family:'Archivo Black',sans-serif;font-size:13px;margin:26px 0 12px;
+    text-transform:uppercase;letter-spacing:.06em}
+  .sub{color:var(--mute);font-size:12px;font-family:'JetBrains Mono',monospace}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:20px 0}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px}
+  .kpi .num{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;color:var(--green)}
+  .kpi .lbl{color:var(--mute);font-size:10px;text-transform:uppercase;letter-spacing:.1em;
+    font-family:'JetBrains Mono',monospace;margin-top:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  #map{height:440px;border:1px solid var(--line);border-radius:4px}
+  .hide{display:none!important}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;
+    animation:blink 1.4s infinite}
+  @keyframes blink{50%{opacity:.2}}
+  .proof{width:64px;height:64px;object-fit:cover;border:1px solid var(--line);border-radius:3px}
+  #auth{max-width:400px;margin:9vh auto;padding:0 20px}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--green);
+    padding:12px 18px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;z-index:99}
+  .choice{width:100%}
+  .choice.sel{border-color:var(--green)}
+  .choice.sel b{color:var(--green)}
+  .marker-pin{width:26px;height:26px;border-radius:50%;background:#13131A;border:2px solid var(--green);
+    color:var(--green);display:flex;align-items:center;justify-content:center;font:700 9px 'JetBrains Mono';cursor:pointer}
+  .marker-pin.placed{background:var(--green);color:#000}
+</style>
+</head>
+<body>
+
+<script src="config.js"></script>
+
+<!-- ══════════ AUTH ══════════ -->
+<div id="auth">
+  <div style="margin-bottom:26px">
+    <div class="mono" style="color:var(--green);font-size:11px;letter-spacing:.15em">[ CAMPAIGN CONTROL ]</div>
+    <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin-top:6px">SCAN<b style="color:var(--green)">MAP</b> COMMAND</div>
+    <div class="sub" style="margin-top:6px">Business side — build campaigns, print QR batches, assign field workers, track scans.</div>
+  </div>
+  <div class="card">
+    <label>Email</label><input id="a-email" type="email" autocomplete="email">
+    <label>Password</label><input id="a-pass" type="password" autocomplete="current-password">
+    <div id="a-namewrap" class="hide"><label>Full name</label><input id="a-name"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="primary" id="a-go" onclick="doAuth()">Sign in</button>
+      <button id="a-toggle" onclick="toggleMode()">Create account</button>
+    </div>
+    <div id="a-msg" class="sub" style="margin-top:12px;color:var(--amber)"></div>
+  </div>
+  <div class="sub" style="margin-top:14px">New accounts start as field workers. Promote your own account to admin once — instructions in SETUP-GUIDE.md.</div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div id="app" class="hide">
+  <div id="topbar">
+    <div class="logo mono">SCAN<b>MAP</b> / COMMAND</div>
+    <nav class="mono">
+      <button data-v="dash" class="active" onclick="go('dash')">Dashboard</button>
+      <button data-v="camps" onclick="go('camps')">Campaigns</button>
+      <button data-v="analytics" onclick="go('analytics')">Analytics</button>
+      <button data-v="new" onclick="go('new')">+ New Campaign</button>
+      <button data-v="workers" onclick="go('workers')">Workers</button>
+      <button data-v="payouts" onclick="go('payouts')">Payouts</button>
+    </nav>
+    <span class="sub" id="whoami"></span>
+    <button onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button>
+  </div>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section id="v-dash">
+      <h1>Mission control</h1>
+      <div class="sub"><span class="dot"></span> live · scans exclude worker verification scans</div>
+      <div class="kpis">
+        <div class="kpi"><div class="num" id="k-scans">—</div><div class="lbl">Real scans (all time)</div></div>
+        <div class="kpi"><div class="num" id="k-active">—</div><div class="lbl">Active campaigns</div></div>
+        <div class="kpi"><div class="num" id="k-verified">—</div><div class="lbl">Verified placements</div></div>
+        <div class="kpi"><div class="num" id="k-workers">—</div><div class="lbl">Field workers</div></div>
+      </div>
+      <h2>Latest field activity</h2>
+      <div class="card" style="padding:0"><table id="t-activity">
+        <thead><tr><th>Proof</th><th>Stop</th><th>Structure</th><th>Worker</th><th>Campaign</th><th>When</th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+
+    <!-- CAMPAIGN LIST -->
+    <section id="v-camps" class="hide">
+      <h1>Campaigns</h1>
+      <div class="card" style="padding:0;margin-top:16px"><table id="t-camps">
+        <thead><tr><th>Name</th><th>Type</th><th>Flyers</th><th>Placed</th><th>Real scans</th><th>Status</th><th></th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+
+    <!-- NEW CAMPAIGN -->
+    <section id="v-new" class="hide">
+      <h1>New campaign</h1>
+      <div class="sub mono" id="w-progress" style="margin-top:4px">STEP 1 OF 9</div>
+      <div class="card" style="margin-top:16px;max-width:680px">
+
+        <div class="wstep" data-step="1">
+          <h2 style="margin-top:0">1 · What's this campaign called?</h2>
+          <input id="c-name" placeholder="Belmont Shore — Grand Opening" style="font-size:16px;padding:14px" autofocus>
+          <div class="sub" style="margin-top:10px">Use the client or promo name — it shows on job cards and reports.</div>
+        </div>
+
+        <div class="wstep hide" data-step="2">
+          <h2 style="margin-top:0">2 · Where will the ads go up?</h2>
+          <div class="row" style="gap:8px">
+            <input id="c-zip" placeholder="ZIP code or city — e.g. 90803" style="flex:1" onkeydown="if(event.key==='Enter')locateZip()">
+            <button onclick="locateZip()" style="width:auto;flex-shrink:0">⌖ Locate</button>
+          </div>
+          <div class="sub" style="margin-top:10px">This centers the map when you drop pins in a later step. Optional but recommended.</div>
+        </div>
+
+        <div class="wstep hide" data-step="3">
+          <h2 style="margin-top:0">3 · Who is this campaign for?</h2>
+          <select id="c-type" style="font-size:15px;padding:14px">
+            <option value="business">A local business</option>
+            <option value="event">An event / show / gathering</option>
+            <option value="lead_gen">Lead generation</option>
+            <option value="lost_pet">A lost pet</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+
+        <div class="wstep hide" data-step="4">
+          <h2 style="margin-top:0">4 · Where should a scan send people?</h2>
+          <input id="c-url" placeholder="https://your-landing-page.com" style="font-size:15px;padding:14px">
+          <div class="sub" style="margin-top:10px">Someone scans a flyer → they land on this page. Yours or your client's.</div>
+        </div>
+
+        <div class="wstep hide" data-step="5">
+          <h2 style="margin-top:0">5 · How many flyers?</h2>
+          <input id="c-count" type="number" value="50" oninput="calcEcon()" style="font-size:16px;padding:14px">
+          <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+            <button style="padding:8px 12px" onclick="setPreset(25,8)">25 @ $8</button>
+            <button style="padding:8px 12px" onclick="setPreset(50,7)">50 @ $7</button>
+            <button style="padding:8px 12px" onclick="setPreset(100,5)">100 @ $5</button>
+            <button style="padding:8px 12px" onclick="setPreset(200,4)">200 @ $4</button>
+          </div>
+          <div class="mono" id="pr-summary" style="margin-top:16px;color:var(--green);font-size:14px">—</div>
+          <button style="margin-top:10px" onclick="$('pay-cfg').classList.toggle('hide')">▸ Configure payout &amp; see the breakdown</button>
+          <div id="pay-cfg" class="hide">
+            <label>Price charged to client (total)</label><input id="c-price" value="$350.00" oninput="calcEcon()">
+            <label>Worker pay per flyer</label><input id="c-pay" value="$1.50" oninput="calcEcon()">
+            <label>Print cost per flyer</label><input id="c-cogs" value="$0.15" oninput="calcEcon()">
+            <div class="mono" id="c-econ" style="margin-top:12px;padding:12px;border:1px dashed var(--line);border-radius:4px;font-size:12px;line-height:1.8"></div>
+          </div>
+        </div>
+
+        <div class="wstep hide" data-step="6">
+          <h2 style="margin-top:0">6 · Campaign letter</h2>
+          <div class="sub" style="margin-bottom:10px">Every campaign owns one letter. Its stops are numbered 1E, 2E, 3E… so any flyer instantly tells you which campaign it belongs to. The next free letter is picked for you.</div>
+          <select id="c-letter" onchange="relabelPins()" style="font-size:15px;padding:14px"></select>
+        </div>
+
+        <div class="wstep hide" data-step="7">
+          <h2 style="margin-top:0">7 · How are the spots chosen?</h2>
+          <div style="display:grid;gap:10px">
+            <button class="choice sel" id="mode-opt" onclick="pickMode('optimized')" style="text-align:left;padding:16px">
+              <b>Pre-mapped route</b><br><span class="sub">You drop the pins on a map next. The worker follows them in order.</span></button>
+            <button class="choice" id="mode-free" onclick="pickMode('freestyle')" style="text-align:left;padding:16px">
+              <b>Freestyle</b><br><span class="sub">No pins. The worker picks allowed spots as they walk — each one is GPS-pinned automatically.</span></button>
+          </div>
+          <input type="hidden" id="c-mode" value="optimized">
+        </div>
+
+        <div class="wstep hide" data-step="8">
+          <h2 style="margin-top:0">8 · Drop the pins</h2>
+          <div class="sub" style="margin-bottom:10px">Click the map — every click adds a numbered stop on that spot. Misclick? Delete it from the list below.</div>
+          <div id="map" style="height:380px"></div>
+          <div id="pinlist" class="card mono" style="margin-top:10px;padding:6px 12px;font-size:12px;max-height:170px;overflow:auto">
+            <span class="sub">No pins yet — click the map to drop them.</span>
+          </div>
+          <div class="sub mono" id="c-pincount" style="margin-top:6px">0 pins</div>
+        </div>
+
+        <div class="wstep hide" data-step="9">
+          <h2 style="margin-top:0">9 · Review &amp; create</h2>
+          <div class="mono" id="w-review" style="font-size:13px;line-height:2.2"></div>
+          <button class="primary" style="margin-top:18px" onclick="saveCampaign()">Create campaign →</button>
+        </div>
+
+        <div class="row" style="margin-top:24px;justify-content:space-between">
+          <button id="w-back" onclick="wBack()">← Back</button>
+          <button class="primary" id="w-next" onclick="wNext()">Next →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAMPAIGN DETAIL -->
+    <section id="v-detail" class="hide">
+      <div class="row" style="justify-content:space-between">
+        <div><h1 id="d-name"></h1><div class="sub" id="d-meta"></div></div>
+        <div class="row">
+          <select id="d-letter" style="width:auto" title="Campaign letter"></select>
+          <button onclick="setCampaignLetter()" style="width:auto">Set letter</button>
+          <button onclick="downloadQRBatch()">↓ QR batch (ZIP)</button>
+          <button id="d-activate" class="primary" onclick="toggleStatus()">Activate</button>
+        </div>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="num" id="d-kscans">—</div><div class="lbl">Real scans</div></div>
+        <div class="kpi"><div class="num" id="d-kplaced">—</div><div class="lbl">Placed / total</div></div>
+        <div class="kpi"><div class="num" id="d-ktop">—</div><div class="lbl">Top stop</div></div>
+      </div>
+
+      <div class="card mono" style="font-size:12px;margin-bottom:16px;line-height:2">
+        NEXT STEPS: <b style="color:var(--green)">1</b> Generate your flyers below →
+        <b style="color:var(--green)">2</b> Hit Activate (top right) so workers can see the job →
+        <b style="color:var(--green)">3</b> Accept a worker's application →
+        <b style="color:var(--green)">4</b> Watch scans arrive in Analytics.
+      </div>
+
+      <!-- BULK FLYER GENERATOR -->
+      <div class="card" style="margin-bottom:16px">
+        <h2 style="margin-top:0">Flyer batch generator</h2>
+        <div class="sub">Upload your flyer design once. Every stop gets its own print-ready PNG with a unique QR code and its location label (1A, 2B…) — so you always know which flyer goes where.</div>
+        <div class="grid2" style="margin-top:14px">
+          <div>
+            <label>Flyer image (PNG or JPG)</label>
+            <input type="file" id="fb-file" accept="image/png,image/jpeg" onchange="flyerLoaded(event)">
+            <label>Snap to corner</label>
+            <select id="fb-pos" onchange="setCorner(this.value)">
+              <option value="br">Bottom right</option>
+              <option value="bl">Bottom left</option>
+              <option value="tr">Top right</option>
+              <option value="tl">Top left</option>
+            </select>
+            <div class="sub" style="margin-top:12px;color:var(--green)">▸ Drag the QR anywhere · corner handle resizes it.<br>▸ Drag the ID line to any corner of the flyer.</div>
+            <div class="row" style="margin-top:16px">
+              <button class="primary" onclick="downloadFlyerBatch()">↓ Generate flyer ZIP</button>
+              <span class="sub" id="fb-status"></span>
+            </div>
+          </div>
+          <div>
+            <div class="sub" style="margin-bottom:6px">Live preview — first stop (green outline won't print)</div>
+            <canvas id="fb-preview" style="width:100%;border:1px solid var(--line);border-radius:4px;background:#000;display:block;touch-action:none;cursor:grab"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h2 style="margin-top:0">Applications</h2>
+          <div class="sub" style="margin-bottom:6px">Workers find this job on their board once the campaign is Active. They review the route map and payout, apply with their print pickup or shipping details attached, and you accept or reject here. Accepted workers scan any QR from the printed batch to confirm pickup — then their route unlocks.</div>
+          <div id="d-assigned" class="sub" style="margin-top:12px"></div>
+        </div>
+        <div class="card" style="padding:0;max-height:320px;overflow:auto">
+          <table id="t-stops"><thead><tr><th>Stop</th><th>Status</th><th>Structure</th><th>Real scans</th><th>Proof</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANALYTICS / HEATMAP -->
+    <section id="v-analytics" class="hide">
+      <div class="row" style="justify-content:space-between">
+        <div><h1>Scan intelligence</h1>
+          <div class="sub"><span class="dot"></span> heat = real scans · verification scans excluded</div></div>
+        <select id="an-camp" style="width:auto;min-width:240px" onchange="renderAnalytics()"></select>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><div class="num" id="an-scans">—</div><div class="lbl">Real scans</div></div>
+        <div class="kpi"><div class="num" id="an-convs">—</div><div class="lbl">Conversions</div></div>
+        <div class="kpi"><div class="num" id="an-rate">—</div><div class="lbl">Scan → conversion</div></div>
+        <div class="kpi"><div class="num" id="an-top">—</div><div class="lbl">Hottest stop</div></div>
+      </div>
+      <div class="row" style="margin-bottom:10px">
+        <button id="an-heatbtn" onclick="toggleHeat()">Heatmap: ON</button>
+        <button onclick="eagleView()">◇ Eagle view</button>
+        <button onclick="streetView()">⌖ Street view</button>
+        <span class="sub">Click any pin for its numbers</span>
+      </div>
+      <div id="an-map" style="height:460px;border:1px solid var(--line);border-radius:4px"></div>
+      <div class="row" style="margin:18px 0 10px;justify-content:space-between">
+        <h2 style="margin:0">Location performance</h2>
+        <div class="row mono" style="font-size:11px">
+          <button style="padding:6px 12px" onclick="sortAnalytics('scans')">Sort: Scans</button>
+          <button style="padding:6px 12px" onclick="sortAnalytics('conv')">Sort: Conv %</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0"><table id="t-analytics">
+        <thead><tr><th>Stop</th><th>Structure</th><th>Real scans</th><th>Conversions</th><th>Conv %</th><th>Status</th></tr></thead>
+        <tbody></tbody></table></div>
+
+      <div class="row" style="margin:18px 0 10px;justify-content:space-between">
+        <h2 style="margin:0">Live scan feed</h2>
+        <select id="feed-stop" style="width:auto;min-width:140px" onchange="renderFeed()"><option value="">All stops</option></select>
+      </div>
+      <div class="card mono" id="scanfeed" style="font-size:12px;max-height:280px;overflow:auto;padding:8px 14px"></div>
+
+      <details class="card" style="margin-top:18px">
+        <summary class="mono" style="cursor:pointer;color:var(--green);font-size:13px">▸ Conversion tracking — install on any website</summary>
+        <div class="sub" style="margin:12px 0">Works on any site — custom-built, web-designer built, Wix, WordPress, Shopify. Two ways to install: paste the snippet, or add the plugin file. Then mark what counts as a conversion.</div>
+        <label>Your conversion endpoint</label>
+        <input id="cv-url" readonly onclick="this.select()">
+        <label>Option 1 — copy-paste snippet (goes right before &lt;/body&gt;)</label>
+        <pre id="cv-snip" class="mono" style="background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:12px;font-size:11px;line-height:1.6;overflow:auto;max-height:220px;white-space:pre-wrap"></pre>
+        <div class="row" style="margin-top:10px">
+          <button onclick="copySnippet()">⧉ Copy snippet</button>
+          <button onclick="downloadTracker()">↓ Option 2 — download scanmap-tracker.js plugin</button>
+        </div>
+        <div class="sub" style="margin-top:12px;line-height:1.9">
+          <b style="color:var(--ink)">Marking the conversion (either option):</b><br>
+          · Add <span class="mono" style="color:var(--green)">data-scanmap-convert</span> to your lead form or buy button — fires automatically on submit/click<br>
+          · Or add <span class="mono" style="color:var(--green)">data-scanmap-thankyou</span> to the &lt;body&gt; tag of a thank-you page — fires on page load<br>
+          · Or call <span class="mono" style="color:var(--green)">scanmapConvert()</span> anywhere in your own code<br>
+          For the plugin file: upload scanmap-tracker.js to the site and add <span class="mono" style="color:var(--green)">&lt;script src="scanmap-tracker.js"&gt;&lt;/script&gt;</span> before &lt;/body&gt;.
+        </div>
+      </details>
+    </section>
+
+    <!-- PAYOUTS -->
+    <section id="v-payouts" class="hide">
+      <h1>Payouts</h1>
+      <div class="sub">Balance = photo-verified placements × pay rate, minus what you've already paid. Workers add their payment details in the Field app (💳).</div>
+      <div class="card" style="padding:0;margin-top:16px"><table id="t-payouts">
+        <thead><tr><th>Worker</th><th>Legal name</th><th>Payment</th><th>Verified</th><th>Earned</th><th>Paid</th><th>Balance</th><th>Record payout</th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+
+    <!-- WORKERS -->
+    <section id="v-workers" class="hide">
+      <h1>Field workers</h1>
+      <div class="sub">Workers create their own accounts in the Field app. Assign them jobs from any campaign page.</div>
+      <div class="card" style="padding:0;margin-top:16px"><table id="t-workers">
+        <thead><tr><th>Name</th><th>Verified placements</th><th>Earned</th><th>Active jobs</th><th>Joined</th></tr></thead>
+        <tbody></tbody></table></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let me=null, signupMode=false, map=null, newPins=[], currentCampaign=null, photoCache={};
+const $=id=>document.getElementById(id);
+const toast=m=>{const t=document.createElement('div');t.className='toast';t.textContent=m;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3200)};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const labelFor=i=>`${i+1}${($('c-letter')&&$('c-letter').value)||'A'}`; // 1A 2A 3A … one letter per campaign
+async function fillLetterSelect(){
+  if($('c-letter').dataset.filled)return; $('c-letter').dataset.filled='1';
+  const {data}=await sb.from('campaigns').select('letter').in('status',['draft','active']);
+  const used=new Set((data||[]).map(c=>c.letter));
+  const sel=$('c-letter'); sel.innerHTML='';
+  for(let i=0;i<26;i++){
+    const L=String.fromCharCode(65+i);
+    sel.insertAdjacentHTML('beforeend',`<option value="${L}" ${used.has(L)?'':''}>${L}${used.has(L)?' — in use':''}</option>`);
+  }
+  for(let i=0;i<26;i++){const L=String.fromCharCode(65+i);if(!used.has(L)){sel.value=L;break;}}
+}
+function relabelPins(){newPins.forEach((p,i)=>{p.label=labelFor(i);p.mk.getElement().textContent=p.label;});renderPinList();}
+const ago=t=>{const s=(Date.now()-new Date(t))/1e3;return s<60?`${s|0}s ago`:s<3600?`${s/60|0}m ago`:s<86400?`${s/3600|0}h ago`:`${s/86400|0}d ago`};
+
+/* ── AUTH ── */
+function toggleMode(){signupMode=!signupMode;$('a-namewrap').classList.toggle('hide',!signupMode);
+  $('a-go').textContent=signupMode?'Create account':'Sign in';
+  $('a-toggle').textContent=signupMode?'Back to sign in':'Create account';}
+async function doAuth(){
+  const email=$('a-email').value.trim(), password=$('a-pass').value;
+  $('a-msg').textContent='…';
+  const r = signupMode
+    ? await sb.auth.signUp({email,password,options:{data:{full_name:$('a-name').value.trim()}}})
+    : await sb.auth.signInWithPassword({email,password});
+  if(r.error){$('a-msg').textContent=r.error.message;return;}
+  boot();
+}
+async function boot(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user)return;
+  const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).single();
+  if(!prof){$('a-msg').textContent='Profile not found — confirm your email first, then sign in.';return;}
+  if(prof.role!=='admin'){$('a-msg').textContent='This account is a field worker. Promote it to admin (SETUP-GUIDE.md step 5) or use the Field app.';return;}
+  me=prof;
+  $('auth').classList.add('hide');$('app').classList.remove('hide');
+  $('whoami').textContent=prof.full_name||user.email;
+  loadDash(); subscribeLive();
+}
+
+/* ── NAV ── */
+function go(v){
+  document.querySelectorAll('main>section').forEach(s=>s.classList.add('hide'));
+  document.querySelectorAll('#topbar nav button').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  $('v-'+v).classList.remove('hide');
+  if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers(); if(v==='payouts')loadPayouts();
+  if(v==='analytics'){loadAnalyticsView();fillConvSetup();}
+  if(v==='new'){wStep=1;delete $('c-letter').dataset.filled;wShow();calcEcon();}
+}
+
+/* ── DASHBOARD ── */
+async function loadDash(){
+  const [scans,camps,plc,wk]=await Promise.all([
+    sb.from('scans').select('id',{count:'exact',head:true}).eq('is_verification',false),
+    sb.from('campaigns').select('id',{count:'exact',head:true}).eq('status','active'),
+    sb.from('placements').select('id',{count:'exact',head:true}),
+    sb.from('profiles').select('id',{count:'exact',head:true}).eq('role','worker'),
+  ]);
+  $('k-scans').textContent=scans.count??0; $('k-active').textContent=camps.count??0;
+  $('k-verified').textContent=plc.count??0; $('k-workers').textContent=wk.count??0;
+  const {data:acts}=await sb.from('placements')
+    .select('placed_at,structure_type,photo_path,stops(label),profiles(full_name),campaigns(name)')
+    .order('placed_at',{ascending:false}).limit(12);
+  const tb=$('t-activity').querySelector('tbody'); tb.innerHTML='';
+  for(const a of acts||[]){
+    const img=await proofUrl(a.photo_path);
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td>${img?`<img class="proof" src="${img}">`:'—'}</td>
+      <td>${esc(a.stops?.label)}</td><td>${esc(a.structure_type)}</td>
+      <td>${esc(a.profiles?.full_name)}</td><td>${esc(a.campaigns?.name)}</td><td>${ago(a.placed_at)}</td></tr>`);
+  }
+}
+async function proofUrl(path){
+  if(!path)return null; if(photoCache[path])return photoCache[path];
+  const {data}=await sb.storage.from('proof-photos').createSignedUrl(path,3600);
+  photoCache[path]=data?.signedUrl; return photoCache[path];
+}
+function subscribeLive(){
+  sb.channel('live').on('postgres_changes',{event:'INSERT',schema:'public',table:'placements'},
+    p=>{toast('● New verified placement just came in');loadDash();})
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'scans'},
+    p=>{ if(!p.new.is_verification) $('k-scans').textContent=(+$('k-scans').textContent||0)+1; })
+  .subscribe();
+}
+
+/* ── CAMPAIGNS ── */
+async function loadCamps(){
+  const {data:camps}=await sb.from('campaigns').select('*, stops(status)').order('created_at',{ascending:false});
+  const {data:scans}=await sb.from('scans').select('campaign_id').eq('is_verification',false);
+  const scanCount={}; (scans||[]).forEach(s=>scanCount[s.campaign_id]=(scanCount[s.campaign_id]||0)+1);
+  const tb=$('t-camps').querySelector('tbody'); tb.innerHTML='';
+  (camps||[]).forEach(c=>{
+    const placed=(c.stops||[]).filter(s=>s.status!=='todo').length;
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td><span class="tag green" style="margin-right:8px">${esc(c.letter||'A')}</span><b>${esc(c.name)}</b></td><td>${esc(c.client_type)}</td>
+      <td>${c.flyer_count}</td><td>${placed}/${(c.stops||[]).length}</td>
+      <td style="color:var(--green)">${scanCount[c.id]||0}</td>
+      <td><span class="tag ${c.status==='active'?'green':c.status==='draft'?'gray':'amber'}">${c.status}</span></td>
+      <td><button onclick="openCampaign('${c.id}')">Open</button></td></tr>`);
+  });
+}
+
+/* ── NEW CAMPAIGN WIZARD ── */
+let wStep=1; const W_MAX=9;
+function wShow(){
+  document.querySelectorAll('.wstep').forEach(s=>s.classList.toggle('hide',+s.dataset.step!==wStep));
+  $('w-progress').textContent='STEP '+wStep+' OF '+W_MAX;
+  $('w-back').style.visibility=wStep===1?'hidden':'visible';
+  $('w-next').style.display=wStep===W_MAX?'none':'inline-block';
+  if(wStep===6)fillLetterSelect();
+  if(wStep===8)setTimeout(initMap,60);
+  if(wStep===9)buildReview();
+}
+function wNext(){
+  if(wStep===1&&!$('c-name').value.trim())return toast('Give the campaign a name first');
+  if(wStep===4&&!$('c-url').value.trim())return toast('Enter the link a scan should open');
+  if(wStep===7&&$('c-mode').value==='freestyle'){wStep=9;wShow();return;}
+  if(wStep===8&&!newPins.length)return toast('Drop at least one pin — or go back and pick Freestyle');
+  wStep=Math.min(W_MAX,wStep+1);wShow();
+}
+function wBack(){
+  if(wStep===9&&$('c-mode').value==='freestyle'){wStep=7;wShow();return;}
+  wStep=Math.max(1,wStep-1);wShow();
+}
+function pickMode(m){
+  $('c-mode').value=m;
+  $('mode-opt').classList.toggle('sel',m==='optimized');
+  $('mode-free').classList.toggle('sel',m==='freestyle');
+}
+function setPreset(count,rate){
+  $('c-count').value=count;$('c-price').value='$'+(count*rate).toFixed(2);calcEcon();
+}
+function buildReview(){
+  const n=+$('c-count').value||0, price=money($('c-price').value),
+        pay=money($('c-pay').value), cogs=money($('c-cogs').value);
+  const prof=price-(pay+cogs)*n;
+  $('w-review').innerHTML=
+    `Name: <b>${esc($('c-name').value)}</b><br>`+
+    `Area: <b>${esc($('c-zip').value||'(map default)')}</b> · For: <b>${esc($('c-type').value)}</b><br>`+
+    `Scans open: <b>${esc($('c-url').value)}</b><br>`+
+    `Flyers: <b>${n}</b> · Job total: <b>$${(price/100).toFixed(2)}</b> · Your profit: <b style="color:${prof>=0?'var(--green)':'var(--red)'}">$${(prof/100).toFixed(2)}</b><br>`+
+    `Campaign letter: <b style="color:var(--green)">${esc($('c-letter').value)}</b> · Mode: <b>${esc($('c-mode').value)}</b>`+
+    ($('c-mode').value==='optimized'?` · Pins: <b>${newPins.length}</b>`:'');
+}
+
+/* ── NEW CAMPAIGN + MAP ── */
+let geoCenter=null;
+async function locateZip(){
+  const q=$('c-zip').value.trim(); if(!q)return;
+  try{
+    const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(q)+
+      '.json?country=US&limit=1&access_token='+MAPBOX_TOKEN);
+    const j=await r.json(); const f=j.features&&j.features[0];
+    if(!f)return toast('Location not found — try a ZIP or "city, state"');
+    initMap(); geoCenter={lng:f.center[0],lat:f.center[1]};
+    map.flyTo({center:f.center,zoom:14,duration:1200});
+    toast('Map centered: '+f.place_name);
+  }catch(e){toast('Location lookup failed');}
+}
+const money=s=>Math.round((parseFloat(String(s).replace(/[^0-9.]/g,''))||0)*100); // "$0.75" -> 75 cents
+function calcEcon(){
+  const n=+$('c-count').value||0;
+  const price=money($('c-price').value), pay=money($('c-pay').value), cogs=money($('c-cogs').value);
+  const revPer=n?price/n:0, profitPer=revPer-pay-cogs, total=profitPer*n;
+  if($('pr-summary'))$('pr-summary').textContent=
+    `JOB TOTAL $${(price/100).toFixed(2)} · your profit $${(profitPer*n/100).toFixed(2)}`;
+  $('c-econ').innerHTML=
+    `Revenue/flyer: <span style="color:var(--ink)">$${(revPer/100).toFixed(2)}</span><br>`+
+    `− Worker pay: $${(pay/100).toFixed(2)} · − Print cost: $${(cogs/100).toFixed(2)}<br>`+
+    `<b style="color:${profitPer>=0?'var(--green)':'var(--red)'}">Profit/flyer: $${(profitPer/100).toFixed(2)} · Campaign profit: $${(total/100).toFixed(2)}</b>`;
+}
+function initMap(){
+  if(map)return; mapboxgl.accessToken=MAPBOX_TOKEN;
+  map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/dark-v11',
+    center:[-118.19,33.77],zoom:13});
+  map.on('click',e=>{
+    const i=newPins.length, el=document.createElement('div');
+    el.className='marker-pin'; el.textContent=labelFor(i);
+    el.onclick=ev=>{ev.stopPropagation();};
+    const mk=new mapboxgl.Marker({element:el}).setLngLat(e.lngLat).addTo(map);
+    const pin={label:labelFor(i),seq:i,lat:e.lngLat.lat,lng:e.lngLat.lng,mk,street:null};
+    newPins.push(pin);
+    $('c-pincount').textContent=newPins.length+' pins';
+    renderPinList(); lookupStreet(pin);
+  });
+}
+async function lookupStreet(pin){
+  try{
+    const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+pin.lng+','+pin.lat+
+      '.json?types=address&limit=1&access_token='+MAPBOX_TOKEN);
+    const j=await r.json(); const f=j.features&&j.features[0];
+    pin.street=f?f.place_name.split(',')[0]:'(no street found)';
+  }catch(e){pin.street='(lookup failed)';}
+  renderPinList();
+}
+function renderPinList(){
+  const el=$('pinlist'); if(!el)return;
+  if(!newPins.length){el.innerHTML='<span class="sub">No pins yet — click the map to drop them.</span>';return;}
+  el.innerHTML=newPins.map((p,i)=>`
+    <div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)">
+      <b style="color:var(--green);min-width:34px">${p.label}</b>
+      <span style="flex:1">${p.street||'locating…'}</span>
+      <span class="sub">${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}</span>
+      <button class="danger" style="padding:2px 8px;font-size:11px" onclick="removePin(${i})">✕</button>
+    </div>`).join('');
+}
+function removePin(i){
+  newPins[i].mk.remove(); newPins.splice(i,1);
+  newPins.forEach((p,idx)=>{p.seq=idx;p.label=labelFor(idx);p.mk.getElement().textContent=p.label;});
+  $('c-pincount').textContent=newPins.length+' pins';
+  renderPinList();
+}
+async function saveCampaign(){
+  const name=$('c-name').value.trim(), url=$('c-url').value.trim();
+  if(!name||!url)return toast('Name and destination URL are required');
+  if($('c-mode').value==='optimized'&&!newPins.length)return toast('Drop at least one pin, or switch to freestyle');
+  const {data:camp,error}=await sb.from('campaigns').insert({
+    name, client_type:$('c-type').value, destination_url:url,
+    flyer_count:+$('c-count').value||50,
+    price_cents:money($('c-price').value),
+    pay_per_flyer_cents:money($('c-pay').value),
+    cogs_per_flyer_cents:money($('c-cogs').value),
+    letter:$('c-letter').value||'A',
+    mode:$('c-mode').value, created_by:me.id,
+    center_lat:newPins[0]?.lat??geoCenter?.lat??33.77, center_lng:newPins[0]?.lng??geoCenter?.lng??-118.19,
+  }).select().single();
+  if(error)return toast(error.message);
+  if(newPins.length){
+    const rows=newPins.map(p=>({campaign_id:camp.id,label:p.label,seq:p.seq,lat:p.lat,lng:p.lng}));
+    const {error:e2}=await sb.from('stops').insert(rows); if(e2)return toast(e2.message);
+  }
+  newPins.forEach(p=>p.mk.remove()); newPins=[]; renderPinList();
+  toast('Campaign saved'); openCampaign(camp.id);
+}
+
+/* ── CAMPAIGN DETAIL ── */
+async function openCampaign(id){
+  const {data:c}=await sb.from('campaigns').select('*').eq('id',id).single();
+  currentCampaign=c;
+  document.querySelectorAll('main>section').forEach(s=>s.classList.add('hide'));
+  $('v-detail').classList.remove('hide');
+  $('d-name').textContent=c.name;
+  const n=c.flyer_count||1;
+  const payT=(c.pay_per_flyer_cents||0)*n, cogsT=(c.cogs_per_flyer_cents||0)*n, profT=c.price_cents-payT-cogsT;
+  $('d-meta').innerHTML=`<span class="tag green">CAMPAIGN ${esc(c.letter||'A')}</span> · ${c.client_type} · ${c.mode} · ${c.flyer_count} flyers
+    <details style="display:inline-block;vertical-align:top">
+      <summary style="cursor:pointer;display:inline;color:var(--green)">· JOB TOTAL $${(c.price_cents/100).toFixed(2)} ▾</summary>
+      <div class="card mono" style="margin-top:8px;font-size:12px;line-height:2">
+        Revenue: $${(c.price_cents/100).toFixed(2)} ($${(c.price_cents/n/100).toFixed(2)}/flyer)<br>
+        − Worker pay: $${(payT/100).toFixed(2)} ($${((c.pay_per_flyer_cents||0)/100).toFixed(2)}/flyer)<br>
+        − Print cost: $${(cogsT/100).toFixed(2)} ($${((c.cogs_per_flyer_cents||0)/100).toFixed(2)}/flyer)<br>
+        <b style="color:${profT>=0?'var(--green)':'var(--red)'}">= Profit: $${(profT/100).toFixed(2)} ($${(profT/n/100).toFixed(2)}/flyer)</b>
+      </div>
+    </details>`;
+  $('d-activate').textContent=c.status==='active'?'Mark done':'Activate';
+  // letter selector — current letter selected, in-use letters marked
+  const {data:allC}=await sb.from('campaigns').select('id,letter').in('status',['draft','active']);
+  const used=new Set((allC||[]).filter(x=>x.id!==c.id).map(x=>x.letter));
+  $('d-letter').innerHTML=Array.from({length:26},(_,i)=>{
+    const L=String.fromCharCode(65+i);
+    return `<option value="${L}">${L}${used.has(L)?' — in use':''}</option>`;
+  }).join('');
+  $('d-letter').value=c.letter||'A';
+  const {data:asg}=await sb.from('assignments')
+    .select('id,worker_id,status,flyers_assigned,fulfillment_method,pickup_name,pickup_location,pickup_address,shipping_address,profiles(full_name)')
+    .eq('campaign_id',id);
+  const {data:allPlc}=await sb.from('placements').select('worker_id').eq('campaign_id',id);
+  const perWorker={}; (allPlc||[]).forEach(p=>perWorker[p.worker_id]=(perWorker[p.worker_id]||0)+1);
+  $('d-assigned').innerHTML=(asg||[]).map(a=>{
+    const done=perWorker[a.worker_id]||0;
+    const owed=done*(c.pay_per_flyer_cents||0)/100;
+    const ful=a.fulfillment_method==='pickup'
+      ?`📦 Pickup: <b>${esc(a.pickup_location)}</b> — under name <b>${esc(a.pickup_name||'(not given)')}</b><br><span style="color:var(--mute)">${esc(a.pickup_address)}</span>`
+      :a.fulfillment_method==='shipping'
+      ?`📦 Ship to: <b>${esc(a.shipping_address)}</b>`
+      :`<span style="color:var(--amber)">📦 No print pickup/shipping set yet</span>`;
+    const stTag=a.status==='applied'?'<span class="tag amber">APPLIED</span>'
+      :a.status==='accepted'?'<span class="tag green">ACCEPTED — awaiting flyer pickup</span>'
+      :a.status==='picked_up'?'<span class="tag green">HAS FLYERS — on route</span>'
+      :'<span class="tag gray">REJECTED</span>';
+    const btns=a.status==='applied'
+      ?`<div class="row" style="margin-top:8px">
+          <button class="primary" style="padding:6px 14px" onclick="setAppStatus('${a.id}','accepted')">Accept</button>
+          <button class="danger" style="padding:6px 14px" onclick="setAppStatus('${a.id}','rejected')">Reject</button></div>`:'';
+    return `<div style="border-top:1px solid var(--line);padding:10px 0;line-height:1.7">
+      <b>${esc(a.profiles?.full_name)}</b> ${stTag}<br>
+      ${a.flyers_assigned} flyers · ${done} verified × $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} = <b style="color:var(--green)">$${owed.toFixed(2)} owed</b><br>
+      ${ful}${btns}</div>`;
+  }).join('')||'No applications yet — workers see this job on their board once the campaign is Active.';
+  // stops + scans + placements
+  const [{data:stops},{data:scans},{data:plc}]=await Promise.all([
+    sb.from('stops').select('*').eq('campaign_id',id).order('seq'),
+    sb.from('scans').select('stop_id').eq('campaign_id',id).eq('is_verification',false),
+    sb.from('placements').select('stop_id,structure_type,photo_path').eq('campaign_id',id),
+  ]);
+  const sc={}; (scans||[]).forEach(s=>sc[s.stop_id]=(sc[s.stop_id]||0)+1);
+  const pm={}; (plc||[]).forEach(p=>pm[p.stop_id]=p);
+  $('d-kscans').textContent=(scans||[]).length;
+  $('d-kplaced').textContent=`${(stops||[]).filter(s=>s.status!=='todo').length}/${(stops||[]).length}`;
+  const top=(stops||[]).map(s=>({l:s.label,n:sc[s.id]||0})).sort((a,b)=>b.n-a.n)[0];
+  $('d-ktop').textContent=top&&top.n?`${top.l} · ${top.n}`:'—';
+  const tb=$('t-stops').querySelector('tbody'); tb.innerHTML='';
+  for(const s of stops||[]){
+    const p=pm[s.id], img=p?await proofUrl(p.photo_path):null;
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td><b>${esc(s.label)}</b></td>
+      <td><span class="tag ${s.status==='verified'?'green':s.status==='placed'?'amber':s.status==='skipped'?'red':'gray'}">${s.status}</span></td>
+      <td>${esc(p?.structure_type||'—')}</td>
+      <td style="color:var(--green)">${sc[s.id]||0}</td>
+      <td>${img?`<img class="proof" src="${img}">`:'—'}</td></tr>`);
+  }
+}
+async function toggleStatus(){
+  const next=currentCampaign.status==='active'?'done':'active';
+  await sb.from('campaigns').update({status:next}).eq('id',currentCampaign.id);
+  openCampaign(currentCampaign.id); toast('Campaign '+next);
+}
+async function setCampaignLetter(){
+  const L=$('d-letter').value;
+  if(L===(currentCampaign.letter||'A'))return toast('Already campaign '+L);
+  const {error}=await sb.from('campaigns').update({letter:L}).eq('id',currentCampaign.id);
+  if(error)return toast(error.message);
+  // relabel every stop: number stays, letter swaps (QR links use ids, so printed codes keep working)
+  const {data:stops}=await sb.from('stops').select('id,label').eq('campaign_id',currentCampaign.id);
+  for(const s of stops||[]){
+    const num=String(s.label).replace(/[A-Za-z]+$/,'');
+    await sb.from('stops').update({label:num+L}).eq('id',s.id);
+  }
+  toast('Campaign letter set to '+L+' — all stops relabeled');
+  openCampaign(currentCampaign.id);
+}
+async function setAppStatus(appId,status){
+  const {error}=await sb.from('assignments').update({status}).eq('id',appId);
+  if(error)return toast(error.message);
+  toast('Application '+status); openCampaign(currentCampaign.id);
+}
+
+/* ── QR BATCH (ZIP of plain QR PNGs + CSV) ── */
+async function downloadQRBatch(){
+  const c=currentCampaign;
+  const {data:stops}=await sb.from('stops').select('*').eq('campaign_id',c.id).order('seq');
+  if(!stops?.length)return toast('No pre-mapped stops — drop pins on the campaign map first');
+  try{
+    const zip=new JSZip(); let csv='label,qr_url\n';
+    toast('Generating '+stops.length+' QR codes…');
+    const cv=document.createElement('canvas'); cv.width=600; cv.height=680;
+    const ctx=cv.getContext('2d');
+    for(const s of stops){
+      const url=`${SCAN_FN_URL}?c=${c.id}&s=${s.id}`;
+      ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,600,680);
+      drawQR(ctx,url,40,40,520);
+      ctx.fillStyle='#000000'; ctx.font="700 56px 'JetBrains Mono',monospace";
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(s.label,300,620);
+      zip.file(`${s.label}.png`, cv.toDataURL('image/png').split(',')[1], {base64:true});
+      csv+=`${s.label},${url}\n`;
+    }
+    zip.file('campaign_data.csv',csv);
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=c.name.replace(/\W+/g,'_')+'_QR_batch.zip'; a.click();
+  }catch(err){ toast('Error: '+err.message); }
+}
+
+/* ── BULK FLYER GENERATOR (drag + resize QR, synchronous rendering) ── */
+let flyerImg=null, previewStop=null, drag=null;
+let qrBox={x:0.72,y:0.60,frac:0.22}; // position + size as fractions of the flyer
+
+function drawQR(ctx,text,x,y,size){
+  const qr=qrcode(0,'M'); qr.addData(text); qr.make();
+  const n=qr.getModuleCount(), cell=size/n;
+  ctx.fillStyle='#000000';
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)
+    if(qr.isDark(r,c)) ctx.fillRect(x+c*cell, y+r*cell, cell+0.5, cell+0.5);
+}
+const FLYER_URL='scans.ad'; // small URL printed on the flyer ID line — change to your real domain
+let tagPos={x:0.02,y:0.965}; // ID line position, draggable to any corner
+function boxMetrics(canvas){
+  const qrSize=Math.max(160,Math.round(canvas.width*qrBox.frac));
+  const x=Math.max(0,Math.min(canvas.width-qrSize,Math.round(qrBox.x*canvas.width)));
+  const y=Math.max(0,Math.min(canvas.height-qrSize,Math.round(qrBox.y*canvas.height)));
+  return {x,y,boxW:qrSize,boxH:qrSize,qrSize};
+}
+function tagMetrics(canvas,label){
+  const ctx=canvas.getContext('2d');
+  const fs=Math.max(11,Math.round(canvas.width*0.013));
+  ctx.font=`${fs}px 'JetBrains Mono',monospace`;
+  const text=`${label} · ${FLYER_URL} · Taken down & recycled after 60 days`;
+  const padX=Math.round(fs*0.6), hgt=Math.round(fs*1.8);
+  const w=Math.ceil(ctx.measureText(text).width)+padX*2;
+  const x=Math.max(0,Math.min(canvas.width-w,Math.round(tagPos.x*canvas.width)));
+  const y=Math.max(0,Math.min(canvas.height-hgt,Math.round(tagPos.y*canvas.height)));
+  return {x,y,w,h:hgt,fs,padX,text};
+}
+function composeFlyer(stop,canvas,withHandle){
+  canvas.width=flyerImg.naturalWidth; canvas.height=flyerImg.naturalHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(flyerImg,0,0);
+  // QR: white only within the QR's own square, quiet zone built inside it
+  const m=boxMetrics(canvas);
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(m.x,m.y,m.qrSize,m.qrSize);
+  const inset=Math.round(m.qrSize*0.05);
+  drawQR(ctx,`${SCAN_FN_URL}?c=${currentCampaign.id}&s=${stop.id}`,m.x+inset,m.y+inset,m.qrSize-inset*2);
+  // single-line ID tag — draggable to any corner
+  const tm=tagMetrics(canvas,stop.label);
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(tm.x,tm.y,tm.w,tm.h);
+  ctx.strokeStyle='#000000'; ctx.lineWidth=Math.max(1,canvas.width*0.0012);
+  ctx.strokeRect(tm.x,tm.y,tm.w,tm.h);
+  ctx.fillStyle='#000000'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.font=`${tm.fs}px 'JetBrains Mono',monospace`;
+  ctx.fillText(tm.text,tm.x+tm.padX,tm.y+tm.h/2+1);
+  if(withHandle){ // editor chrome — preview only, never exported
+    ctx.strokeStyle='#AAFF00'; ctx.setLineDash([8,6]); ctx.lineWidth=Math.max(2,canvas.width*0.003);
+    ctx.strokeRect(m.x,m.y,m.qrSize,m.qrSize);
+    ctx.strokeRect(tm.x,tm.y,tm.w,tm.h); ctx.setLineDash([]);
+    const hs=Math.max(22,m.qrSize*0.16);
+    ctx.fillStyle='#AAFF00'; ctx.fillRect(m.x+m.qrSize-hs/2,m.y+m.qrSize-hs/2,hs,hs);
+    ctx.strokeStyle='#000'; ctx.strokeRect(m.x+m.qrSize-hs/2,m.y+m.qrSize-hs/2,hs,hs);
+  }
+  return m;
+}
+function flyerLoaded(e){
+  const f=e.target.files[0]; if(!f)return;
+  const img=new Image();
+  img.onload=async()=>{
+    flyerImg=img;
+    $('fb-status').textContent=`Design loaded — ${img.naturalWidth}×${img.naturalHeight}px`;
+    const {data}=await sb.from('stops').select('*').eq('campaign_id',currentCampaign.id).order('seq').limit(1);
+    previewStop=data?.[0]||null;
+    if(!previewStop)$('fb-status').textContent='No stops on this campaign — drop pins first';
+    flyerPreview();
+  };
+  img.onerror=()=>toast('Could not read that image — use a PNG or JPG');
+  img.src=URL.createObjectURL(f);
+}
+function flyerPreview(){
+  if(!flyerImg||!previewStop)return;
+  try{ composeFlyer(previewStop,$('fb-preview'),true); }
+  catch(err){ $('fb-status').textContent='Render error: '+err.message; }
+}
+function setCorner(pos){
+  qrBox.x=pos.includes('l')?0.02:0.98; // clamping in boxMetrics pins it flush
+  qrBox.y=pos.includes('t')?0.02:0.98;
+  flyerPreview();
+}
+/* drag to move, corner handle to resize */
+function pvPoint(e){
+  const cv=$('fb-preview'), r=cv.getBoundingClientRect();
+  return {px:(e.clientX-r.left)*cv.width/r.width, py:(e.clientY-r.top)*cv.height/r.height};
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const cv=$('fb-preview'); if(!cv)return;
+  cv.addEventListener('pointerdown',e=>{
+    if(!flyerImg||!previewStop)return;
+    const {px,py}=pvPoint(e), m=boxMetrics(cv), tm=tagMetrics(cv,previewStop.label);
+    const hs=Math.max(22,m.qrSize*0.16)*1.6;
+    if(px>=tm.x&&px<=tm.x+tm.w&&py>=tm.y&&py<=tm.y+tm.h)
+      drag={mode:'tag',dx:px-tm.x,dy:py-tm.y};
+    else if(Math.abs(px-(m.x+m.qrSize))<hs&&Math.abs(py-(m.y+m.qrSize))<hs)
+      drag={mode:'resize'};
+    else if(px>=m.x&&px<=m.x+m.qrSize&&py>=m.y&&py<=m.y+m.qrSize)
+      drag={mode:'move',dx:px-m.x,dy:py-m.y};
+    else return;
+    cv.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    const {px,py}=pvPoint(e), m=boxMetrics(cv);
+    if(drag.mode==='tag'){ tagPos.x=(px-drag.dx)/cv.width; tagPos.y=(py-drag.dy)/cv.height; }
+    else if(drag.mode==='move'){ qrBox.x=(px-drag.dx)/cv.width; qrBox.y=(py-drag.dy)/cv.height; }
+    else{ qrBox.frac=Math.min(0.6,Math.max(0.10,(px-m.x)/cv.width)); }
+    requestAnimationFrame(flyerPreview);
+  });
+  ['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>drag=null));
+});
+async function downloadFlyerBatch(){
+  if(!flyerImg)return toast('Upload your flyer design first');
+  const {data:stops}=await sb.from('stops').select('*').eq('campaign_id',currentCampaign.id).order('seq');
+  if(!stops?.length)return toast('No stops — this campaign has no pins yet');
+  try{
+    const zip=new JSZip(), cv=document.createElement('canvas');
+    let csv='label,qr_url\n';
+    for(let i=0;i<stops.length;i++){
+      $('fb-status').textContent=`Rendering ${i+1}/${stops.length}…`;
+      composeFlyer(stops[i],cv,false);
+      zip.file(`${stops[i].label}.png`, cv.toDataURL('image/png').split(',')[1], {base64:true});
+      csv+=`${stops[i].label},${SCAN_FN_URL}?c=${currentCampaign.id}&s=${stops[i].id}\n`;
+      await new Promise(r=>setTimeout(r,0)); // keep the UI responsive
+    }
+    zip.file('campaign_data.csv',csv);
+    $('fb-status').textContent='Zipping…';
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=currentCampaign.name.replace(/\W+/g,'_')+'_flyers.zip'; a.click();
+    $('fb-status').textContent=stops.length+' print-ready flyers downloaded ✓';
+  }catch(err){ $('fb-status').textContent='Error: '+err.message; }
+}
+
+/* ── ANALYTICS: heatmap + conversion intelligence ── */
+let anMap=null, anRows=[], anSort='scans', anPopup=null;
+async function loadAnalyticsView(){
+  const {data:camps}=await sb.from('campaigns').select('id,name,center_lat,center_lng').order('created_at',{ascending:false});
+  const sel=$('an-camp');
+  sel.innerHTML=(camps||[]).map(c=>`<option value="${c.id}" data-lat="${c.center_lat}" data-lng="${c.center_lng}">${esc(c.name)}</option>`).join('')
+    ||'<option>No campaigns yet</option>';
+  if(!camps?.length)return;
+  if(!anMap){
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    anMap=new mapboxgl.Map({container:'an-map',style:'mapbox://styles/mapbox/dark-v11',
+      center:[camps[0].center_lng||-118.19,camps[0].center_lat||33.77],zoom:13});
+    anMap.on('load',renderAnalytics);
+    anMap.on('click','an-pts',e=>{
+      const p=e.features[0].properties;
+      if(anPopup)anPopup.remove();
+      anPopup=new mapboxgl.Popup({closeButton:false})
+        .setLngLat(e.features[0].geometry.coordinates)
+        .setHTML(`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#111">
+          <b>${p.label}</b> · ${p.tag}<br>Scans: ${p.scans} · Conv: ${p.convs} (${p.rate}%)</div>`)
+        .addTo(anMap);
+    });
+  } else renderAnalytics();
+}
+async function renderAnalytics(){
+  if(!anMap||!anMap.isStyleLoaded()){setTimeout(renderAnalytics,300);return;}
+  const cid=$('an-camp').value; if(!cid)return;
+  const [{data:stops},{data:scans},convRes,{data:plc}]=await Promise.all([
+    sb.from('stops').select('*').eq('campaign_id',cid),
+    sb.from('scans').select('stop_id').eq('campaign_id',cid).eq('is_verification',false),
+    sb.from('conversions').select('stop_id').eq('campaign_id',cid),
+    sb.from('placements').select('stop_id,structure_type').eq('campaign_id',cid),
+  ]);
+  const convs=convRes.error?[]:(convRes.data||[]); // graceful before migration 4 runs
+  const sc={},cv={},st={};
+  scans?.forEach(s=>sc[s.stop_id]=(sc[s.stop_id]||0)+1);
+  convs.forEach(s=>cv[s.stop_id]=(cv[s.stop_id]||0)+1);
+  plc?.forEach(p=>st[p.stop_id]=p.structure_type);
+  const totScans=(scans||[]).length, totConvs=convs.length;
+  const max=Math.max(1,...(stops||[]).map(s=>sc[s.id]||0));
+  anRows=(stops||[]).map(s=>{
+    const n=sc[s.id]||0, k=cv[s.id]||0;
+    const share=n/max;
+    const tag=n===0?'UNSCANNED':share>=0.6?'🔥 HOT':share>=0.25?'WARM':'COLD';
+    return {label:s.label,lat:s.lat,lng:s.lng,scans:n,convs:k,
+      rate:n?+(k/n*100).toFixed(1):0,tag,structure:st[s.id]||'—'};
+  });
+  // KPIs
+  $('an-scans').textContent=totScans;
+  $('an-convs').textContent=convRes.error?'run mig. 4':totConvs;
+  $('an-rate').textContent=totScans?((totConvs/totScans*100).toFixed(1)+'%'):'—';
+  const top=[...anRows].sort((a,b)=>b.scans-a.scans)[0];
+  $('an-top').textContent=top&&top.scans?`${top.label} · ${top.scans}`:'—';
+  // heat + points on the map
+  const geo={type:'FeatureCollection',features:anRows.filter(r=>r.lat!=null).map(r=>({
+    type:'Feature',geometry:{type:'Point',coordinates:[r.lng,r.lat]},
+    properties:{label:r.label,scans:r.scans,convs:r.convs,rate:r.rate,tag:r.tag,
+      weight:r.scans/max}}))};
+  if(anMap.getSource('an-scans')) anMap.getSource('an-scans').setData(geo);
+  else{
+    anMap.addSource('an-scans',{type:'geojson',data:geo});
+    anMap.addLayer({id:'an-heat',type:'heatmap',source:'an-scans',paint:{
+      'heatmap-weight':['get','weight'],
+      'heatmap-intensity':['interpolate',['linear'],['zoom'],10,0.8,16,2.2],
+      'heatmap-radius':['interpolate',['linear'],['zoom'],10,24,16,70],
+      'heatmap-color':['interpolate',['linear'],['heatmap-density'],
+        0,'rgba(0,0,0,0)',0.15,'rgba(79,138,255,0.45)',0.45,'rgba(255,184,48,0.55)',
+        0.75,'rgba(170,255,0,0.65)',1,'rgba(170,255,0,0.95)'],
+      'heatmap-opacity':0.85}});
+    anMap.addLayer({id:'an-pts',type:'circle',source:'an-scans',paint:{
+      'circle-radius':6,'circle-stroke-width':1.5,'circle-stroke-color':'#0A0A0F',
+      'circle-color':['case',['==',['get','scans'],0],'#555',
+        ['>=',['get','weight'],0.6],'#AAFF00',
+        ['>=',['get','weight'],0.25],'#FFB830','#4F8AFF']}});
+    anMap.on('mouseenter','an-pts',()=>anMap.getCanvas().style.cursor='pointer');
+    anMap.on('mouseleave','an-pts',()=>anMap.getCanvas().style.cursor='');
+  }
+  eagleView(); sortAnalytics(anSort); loadFeed(cid);
+}
+function toggleHeat(){
+  const vis=anMap.getLayoutProperty('an-heat','visibility')!=='none';
+  anMap.setLayoutProperty('an-heat','visibility',vis?'none':'visible');
+  $('an-heatbtn').textContent='Heatmap: '+(vis?'OFF':'ON');
+}
+function eagleView(){ // bird's-eye: flat, fitted to every pin
+  const pts=anRows.filter(r=>r.lat!=null); if(!pts.length)return;
+  const b=new mapboxgl.LngLatBounds();
+  pts.forEach(r=>b.extend([r.lng,r.lat]));
+  anMap.fitBounds(b,{padding:70,pitch:0,bearing:0,duration:800});
+}
+function streetView(){ anMap.easeTo({pitch:58,zoom:Math.max(anMap.getZoom(),15),duration:800}); }
+function sortAnalytics(by){
+  anSort=by;
+  const rows=[...anRows].sort((a,b)=>by==='conv'?(b.rate-a.rate||b.convs-a.convs):(b.scans-a.scans));
+  const tb=$('t-analytics').querySelector('tbody'); tb.innerHTML='';
+  rows.forEach(r=>{
+    const cls=r.tag.includes('HOT')?'green':r.tag==='WARM'?'amber':r.tag==='UNSCANNED'?'red':'gray';
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td><b>${esc(r.label)}</b></td><td>${esc(r.structure)}</td>
+      <td style="color:var(--green)">${r.scans}</td><td>${r.convs}</td>
+      <td>${r.rate}%</td><td><span class="tag ${cls}">${r.tag}</span></td></tr>`);
+  });
+}
+
+/* ── LIVE SCAN FEED (per-ad scans as they come in) ── */
+let feedScans=[], feedLabels={}, feedSub=null;
+async function loadFeed(cid){
+  const [{data:stops},{data:scans}]=await Promise.all([
+    sb.from('stops').select('id,label').eq('campaign_id',cid),
+    sb.from('scans').select('stop_id,scanned_at').eq('campaign_id',cid)
+      .eq('is_verification',false).order('scanned_at',{ascending:false}).limit(80),
+  ]);
+  feedLabels={}; (stops||[]).forEach(s=>feedLabels[s.id]=s.label);
+  feedScans=scans||[];
+  const sel=$('feed-stop'); const cur=sel.value;
+  sel.innerHTML='<option value="">All stops</option>'+
+    (stops||[]).sort((a,b)=>a.label.localeCompare(b.label,undefined,{numeric:true}))
+      .map(s=>`<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  sel.value=cur||'';
+  renderFeed();
+  if(feedSub)sb.removeChannel(feedSub);
+  feedSub=sb.channel('feed-'+cid).on('postgres_changes',
+    {event:'INSERT',schema:'public',table:'scans',filter:'campaign_id=eq.'+cid},
+    p=>{ if(!p.new.is_verification){feedScans.unshift(p.new);renderFeed();
+      toast('● Scan on '+(feedLabels[p.new.stop_id]||'?'));} }).subscribe();
+}
+function renderFeed(){
+  const f=$('feed-stop').value;
+  const rows=feedScans.filter(s=>!f||s.stop_id===f).slice(0,60);
+  $('scanfeed').innerHTML=rows.length?rows.map(s=>`
+    <div style="display:flex;gap:12px;padding:5px 0;border-bottom:1px solid var(--line)">
+      <b style="color:var(--green);min-width:38px">${esc(feedLabels[s.stop_id]||'?')}</b>
+      <span style="flex:1">scan</span>
+      <span class="sub">${new Date(s.scanned_at).toLocaleTimeString()} · ${ago(s.scanned_at)}</span>
+    </div>`).join('')
+    :'<span class="sub">No real scans yet — worker verification scans are excluded.</span>';
+}
+
+/* ── PAYOUTS ── */
+async function loadPayouts(){
+  const [{data:wk},{data:plc},{data:paid}]=await Promise.all([
+    sb.from('profiles').select('*').eq('role','worker'),
+    sb.from('placements').select('worker_id,campaigns(pay_per_flyer_cents)'),
+    sb.from('payouts').select('worker_id,amount_cents'),
+  ]);
+  const earned={},count={},paidc={};
+  (plc||[]).forEach(p=>{count[p.worker_id]=(count[p.worker_id]||0)+1;
+    earned[p.worker_id]=(earned[p.worker_id]||0)+(p.campaigns?.pay_per_flyer_cents||0);});
+  (paid||[]).forEach(p=>paidc[p.worker_id]=(paidc[p.worker_id]||0)+p.amount_cents);
+  const tb=$('t-payouts').querySelector('tbody'); tb.innerHTML='';
+  (wk||[]).forEach(w=>{
+    const e=earned[w.id]||0, pd=paidc[w.id]||0, bal=e-pd;
+    tb.insertAdjacentHTML('beforeend',`<tr>
+      <td><b>${esc(w.full_name||'(no name)')}</b></td>
+      <td>${esc(w.legal_name||'—')}</td>
+      <td>${w.pay_method?esc(w.pay_method)+' · '+esc(w.pay_handle||''):'<span class="tag amber">not set</span>'}</td>
+      <td>${count[w.id]||0}</td>
+      <td>$${(e/100).toFixed(2)}</td><td>$${(pd/100).toFixed(2)}</td>
+      <td style="color:${bal>0?'var(--green)':'var(--mute)'};font-weight:700">$${(bal/100).toFixed(2)}</td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap">
+        <input id="po-${w.id}" placeholder="$${(bal/100).toFixed(2)}" style="width:90px;padding:6px 8px">
+        <button style="padding:6px 12px" onclick="recordPayout('${w.id}',${bal})">Pay</button></div></td>
+    </tr>`);
+  });
+}
+async function recordPayout(wid,balCents){
+  const raw=$('po-'+wid).value.trim();
+  const cents=raw?Math.round(parseFloat(raw.replace(/[^0-9.]/g,''))*100):balCents;
+  if(!cents||cents<=0)return toast('Enter an amount');
+  const {error}=await sb.from('payouts').insert({worker_id:wid,amount_cents:cents,created_by:me.id});
+  if(error)return toast(error.message);
+  toast('Payout recorded: $'+(cents/100).toFixed(2)); loadPayouts();
+}
+
+/* ── CONVERSION TRACKING SETUP ── */
+function trackerCore(){
+  const u=SUPABASE_URL+'/functions/v1/convert';
+  return `(function(){
+  var CONVERT_URL="${u}";
+  try{
+    var p=new URLSearchParams(location.search);
+    if(p.get("sm_c"))localStorage.setItem("sm_attr",JSON.stringify({c:p.get("sm_c"),s:p.get("sm_s"),t:Date.now()}));
+  }catch(e){}
+  window.scanmapConvert=function(){
+    try{
+      var a=JSON.parse(localStorage.getItem("sm_attr")||"null");
+      if(!a||!a.c)return;
+      if(Date.now()-a.t>7*24*3600*1000)return;
+      fetch(CONVERT_URL+"?c="+a.c+(a.s?"&s="+a.s:""),{mode:"no-cors"});
+      localStorage.removeItem("sm_attr");
+    }catch(e){}
+  };
+  document.addEventListener("click",function(e){
+    if(e.target&&e.target.closest&&e.target.closest("[data-scanmap-convert]"))window.scanmapConvert();
+  },true);
+  document.addEventListener("submit",function(e){
+    if(e.target&&e.target.matches&&e.target.matches("form[data-scanmap-convert]"))window.scanmapConvert();
+  },true);
+  function ty(){if(document.body&&document.body.hasAttribute("data-scanmap-thankyou"))window.scanmapConvert();}
+  document.readyState==="loading"?document.addEventListener("DOMContentLoaded",ty):ty();
+})();`;
+}
+function fillConvSetup(){
+  if(!$('cv-url'))return;
+  $('cv-url').value=SUPABASE_URL+'/functions/v1/convert';
+  $('cv-snip').textContent='<scr'+'ipt>\n'+trackerCore()+'\n</scr'+'ipt>';
+}
+async function copySnippet(){
+  try{await navigator.clipboard.writeText($('cv-snip').textContent);toast('Snippet copied — paste before </body>');}
+  catch(e){toast('Copy failed — select the text manually');}
+}
+function downloadTracker(){
+  const blob=new Blob(['/* ScanMap conversion tracker — include with <scr'+'ipt src="scanmap-tracker.js"></scr'+'ipt> */\n'+trackerCore()],
+    {type:'text/javascript'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scanmap-tracker.js';a.click();
+}
+
+/* ── WORKERS ── */
+async function loadWorkers(){
+  const {data:wk}=await sb.from('profiles').select('*').eq('role','worker');
+  const {data:plc}=await sb.from('placements').select('worker_id,campaigns(pay_per_flyer_cents)');
+  const {data:asg}=await sb.from('assignments').select('worker_id');
+  const pc={},ec={},ac={};
+  (plc||[]).forEach(p=>{pc[p.worker_id]=(pc[p.worker_id]||0)+1;
+    ec[p.worker_id]=(ec[p.worker_id]||0)+(p.campaigns?.pay_per_flyer_cents||0);});
+  (asg||[]).forEach(a=>ac[a.worker_id]=(ac[a.worker_id]||0)+1);
+  const tb=$('t-workers').querySelector('tbody'); tb.innerHTML='';
+  (wk||[]).forEach(w=>tb.insertAdjacentHTML('beforeend',`<tr>
+    <td><b>${esc(w.full_name||'(no name)')}</b></td>
+    <td style="color:var(--green)">${pc[w.id]||0}</td>
+    <td style="color:var(--green)">$${((ec[w.id]||0)/100).toFixed(2)}</td>
+    <td>${ac[w.id]||0}</td>
+    <td>${new Date(w.created_at).toLocaleDateString()}</td></tr>`));
+}
+
+/* boot on load if a session exists */
+sb.auth.getSession().then(({data})=>{ if(data.session) boot(); });
+</script>
+</body>
+</html>

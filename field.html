@@ -99,6 +99,7 @@
     <div><div style="font-family:'Archivo Black',sans-serif;font-size:14px">SCAN<b style="color:var(--green)">MAP</b></div>
       <div class="mono" style="font-size:11px;color:var(--mute)" id="j-hello"></div></div>
     <div class="stat mono"><b id="j-today">0</b><div style="font-size:10px;color:var(--mute)" data-t="verifiedtoday">VERIFIED TODAY</div><div style="font-size:11px;color:var(--green)" id="j-earn"></div></div>
+    <button class="ghost" onclick="openPaySheet()">💳</button>
     <button class="ghost" onclick="setLang(L==='en'?'es':'en')" id="langbtn2">ES</button>
     <button class="ghost" onclick="sb.auth.signOut().then(()=>location.reload())">⏻</button>
   </div>
@@ -168,11 +169,29 @@
     <span>📦</span><button class="ghost" onclick="$('fsheet').classList.add('hide')">✕</button></div>
   <div style="font-weight:700;font-size:18px" data-t="pickuptitle">Where should we print your flyers?</div>
   <div class="mono" style="font-size:12px;color:var(--mute);margin:4px 0 14px" data-t="pickuphint">Pick a store near you — your manager sends the print order there and you pick it up. Or have them shipped.</div>
-  <button onclick="findStores()" data-t="findstores">📍 Find Staples / Office Depot near me</button>
+  <label data-t="fullname">Full name for pickup (required)</label>
+  <input id="ful-name" autocomplete="name">
+  <button style="margin-top:12px" onclick="findStores()" data-t="findstores">📍 Find Staples / Office Depot near me</button>
   <div id="storelist" style="margin-top:10px"></div>
   <label data-t="orship">Or ship them to my address</label>
   <input id="ship-addr" placeholder="123 Main St, Long Beach CA 90802">
   <button style="margin-top:10px" onclick="saveShipping()" data-t="saveship">Save shipping address</button>
+</div>
+
+<!-- PAYMENT DETAILS SHEET -->
+<div class="sheet hide" id="paysheet">
+  <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)">
+    <span>💳</span><button class="ghost" onclick="$('paysheet').classList.add('hide')">✕</button></div>
+  <div style="font-weight:700;font-size:18px" data-t="payinfo">Payment details</div>
+  <label data-t="legalname">Full legal name (for payment)</label><input id="pay-name" autocomplete="name">
+  <label data-t="paymethod">How do you want to get paid?</label>
+  <select id="pay-method">
+    <option value="venmo">Venmo</option><option value="zelle">Zelle</option>
+    <option value="paypal">PayPal</option><option value="cashapp">Cash App</option>
+    <option value="check">Check</option>
+  </select>
+  <label data-t="payhandle">Handle / phone / email for that method</label><input id="pay-handle">
+  <button class="primary" style="margin-top:14px" onclick="savePayDetails()" data-t="savepay">Save payment details</button>
 </div>
 
 <div class="flash ok hide" id="flash-ok"><div>✓</div><div data-t="verified">VERIFIED</div></div>
@@ -240,6 +259,15 @@ const T={
   total:{en:'total',es:'total'},
   applysent:{en:'Application sent — you will see it here once approved',es:'Aplicación enviada — la verás aquí al ser aprobada'},
   noavail:{en:'No open jobs right now. Check back soon.',es:'No hay trabajos abiertos ahora. Vuelve pronto.'},
+  fullname:{en:'Full name for pickup (required)',es:'Nombre completo para recoger (obligatorio)'},
+  nameneeded:{en:'Full name is required for pickup',es:'Se requiere el nombre completo para recoger'},
+  skippickup:{en:'Skip — I already have the flyers',es:'Omitir — ya tengo los volantes'},
+  payinfo:{en:'Payment details',es:'Datos de pago'},
+  paymethod:{en:'How do you want to get paid?',es:'¿Cómo quieres recibir tu pago?'},
+  payhandle:{en:'Handle / phone / email for that method',es:'Usuario / teléfono / correo de ese método'},
+  legalname:{en:'Full legal name (for payment)',es:'Nombre legal completo (para el pago)'},
+  savepay:{en:'Save payment details',es:'Guardar datos de pago'},
+  paysaved:{en:'Payment details saved',es:'Datos de pago guardados'},
 };
 const structures=[
   ['community_board',{en:'Community board',es:'Tablero comunitario'}],
@@ -293,13 +321,30 @@ async function loadToday(){
 }
 
 /* ── jobs list ── */
+/* ── payment details ── */
+function openPaySheet(){
+  $('pay-name').value=me.legal_name||'';
+  $('pay-method').value=me.pay_method||'venmo';
+  $('pay-handle').value=me.pay_handle||'';
+  $('paysheet').classList.remove('hide');
+}
+async function savePayDetails(){
+  const legal_name=$('pay-name').value.trim(), pay_method=$('pay-method').value, pay_handle=$('pay-handle').value.trim();
+  if(!legal_name||!pay_handle)return toast(t('nameneeded'));
+  const {error}=await sb.from('profiles').update({legal_name,pay_method,pay_handle}).eq('id',me.id);
+  if(error)return toast(error.message);
+  Object.assign(me,{legal_name,pay_method,pay_handle});
+  $('paysheet').classList.add('hide'); toast(t('paysaved'));
+}
+
 /* ── job board: available (browse + apply) and active (accepted/picked_up) ── */
 async function loadJobs(){
   const list=$('j-list');list.innerHTML='';
-  const [{data:camps},{data:apps}]=await Promise.all([
+  const [{data:campsRaw},{data:apps}]=await Promise.all([
     sb.from('campaigns').select('*').eq('status','active'),
     sb.from('assignments').select('*').eq('worker_id',me.id),
   ]);
+  const camps=(campsRaw||[]).sort((a,b)=>(a.letter||'A').localeCompare(b.letter||'A'));
   const mine={}; (apps||[]).forEach(a=>mine[a.campaign_id]=a);
   const activeJobs=(camps||[]).filter(c=>['accepted','picked_up'].includes(mine[c.id]?.status));
   const openJobs=(camps||[]).filter(c=>!mine[c.id]||['applied','rejected'].includes(mine[c.id]?.status));
@@ -324,17 +369,24 @@ async function jobCard(c,app){
     :st==='accepted'?`<span class="tag" style="border-color:var(--amber);color:var(--amber)">📦</span>`
     :st==='picked_up'?`<span class="tag green">▶</span>`:'';
   return `<div class="card">
-    <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
-      <b><span class="tag green" style="margin-right:6px">${esc(c.letter||'A')}</span>${esc(c.name)}</b>
-      <div style="text-align:right;flex-shrink:0">
-        <div class="mono" style="color:var(--green);font-weight:700;font-size:20px">$${payout}</div>
-        <div class="mono" style="font-size:10px;color:var(--mute)">$${pay.toFixed(2)}${t('perflyer')} · ${t('total')}</div>
-      </div></div>
-    <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
-      ${c.flyer_count} ${t('flyers')} · ${total||0} ${t('stopsw')} · ${c.mode} ${statusTag?'· ':''}${statusTag}</div>
-    ${['accepted','picked_up'].includes(st)?`<div class="bar"><div style="width:${pct}%"></div></div>`:''}
-    <button class="${st==='applied'||st==='rejected'?'':'primary'}" style="margin-top:12px"
-      onclick='openJob(${JSON.stringify(c.id)})'>${['accepted','picked_up'].includes(st)?t('open'):t('viewjob')}</button>
+    <div style="display:flex;gap:14px;align-items:start">
+      <div style="flex-shrink:0;width:48px;height:48px;background:var(--green);color:#000;border:2px solid #000;
+        box-shadow:3px 3px 0 #000;display:flex;align-items:center;justify-content:center;
+        font-family:'Archivo Black',sans-serif;font-size:24px">${esc(c.letter||'A')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+          <b>${esc(c.name)}</b>
+          <div style="text-align:right;flex-shrink:0">
+            <div class="mono" style="color:var(--green);font-weight:700;font-size:20px">$${payout}</div>
+            <div class="mono" style="font-size:10px;color:var(--mute)">$${pay.toFixed(2)}${t('perflyer')} · ${t('total')}</div>
+          </div></div>
+        <div class="mono" style="font-size:12px;color:var(--mute);margin-top:6px">
+          ${c.flyer_count} ${t('flyers')} · ${total||0} ${t('stopsw')} · ${c.mode} ${statusTag?'· ':''}${statusTag}</div>
+        ${['accepted','picked_up'].includes(st)?`<div class="bar"><div style="width:${pct}%"></div></div>`:''}
+        <button class="${st==='applied'||st==='rejected'?'':'primary'}" style="margin-top:12px"
+          onclick='openJob(${JSON.stringify(c.id)})'>${['accepted','picked_up'].includes(st)?t('open'):t('viewjob')}</button>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -388,9 +440,10 @@ function drawActions(){
   if(st==='rejected'){a.innerHTML=`<div class="mono" style="text-align:center;color:var(--mute);padding:8px">${t('rejectedtag')}</div>`;return;}
   // accepted → must confirm flyer pickup before the route unlocks
   if(st==='accepted'){
-    a.innerHTML=job.mode==='optimized'
+    a.innerHTML=(job.mode==='optimized'
       ?`<button class="primary" onclick="startPickupScan()">${t('confirmpickup')}</button>`
-      :`<button class="primary" onclick="confirmPickupManual()">${t('pickupmanual')}</button>`;
+      :`<button class="primary" onclick="confirmPickupManual()">${t('pickupmanual')}</button>`)
+      +`<button onclick="confirmPickupManual()">${t('skippickup')}</button>`;
     return;
   }
   // picked_up → normal placement flow
@@ -459,12 +512,19 @@ async function submitFulfillment(fields){
     $('fsheet').classList.add('hide');toast(t('applysent'));drawActions();
   }
 }
+function pickupName(){
+  const n=$('ful-name').value.trim();
+  if(!n){toast(t('nameneeded'));return null;}
+  return n;
+}
 async function savePickup(name,address){
-  submitFulfillment({fulfillment_method:'pickup',pickup_location:name,pickup_address:address,shipping_address:null});
+  const pn=pickupName(); if(!pn)return;
+  submitFulfillment({fulfillment_method:'pickup',pickup_name:pn,pickup_location:name,pickup_address:address,shipping_address:null});
 }
 async function saveShipping(){
   const addr=$('ship-addr').value.trim(); if(!addr)return;
-  submitFulfillment({fulfillment_method:'shipping',shipping_address:addr,pickup_location:null,pickup_address:null});
+  const pn=pickupName(); if(!pn)return;
+  submitFulfillment({fulfillment_method:'shipping',pickup_name:pn,shipping_address:addr,pickup_location:null,pickup_address:null});
 }
 
 /* ── placement flow ── */
