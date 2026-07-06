@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0A0A0F">
-<title>ScanMap Field — Placement Jobs</title>
+<title>SCANS.AD Field</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
@@ -77,7 +77,7 @@
   <div class="pad" style="display:flex;align-items:center">
     <div id="auth-wrap">
       <div class="mono" style="color:var(--green);font-size:11px;letter-spacing:.15em">[ FIELD OPS ]</div>
-      <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin:6px 0 4px">SCAN<b style="color:var(--green)">MAP</b> FIELD</div>
+      <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin:6px 0 4px">SCANS<b style="color:var(--green)">.AD</b> FIELD</div>
       <div class="mono" style="color:var(--mute);font-size:12px;margin-bottom:20px" data-t="tagline">Verified placement work. Scan, place, prove, get credit.</div>
       <div class="card">
         <label data-t="name" class="hide" id="f-namelbl">Full name</label><input id="f-name" class="hide">
@@ -96,7 +96,7 @@
 <!-- JOBS LIST -->
 <div class="screen hide" id="s-jobs">
   <div class="hdr">
-    <div><div style="font-family:'Archivo Black',sans-serif;font-size:14px">SCAN<b style="color:var(--green)">MAP</b></div>
+    <div><div style="font-family:'Archivo Black',sans-serif;font-size:14px">SCANS<b style="color:var(--green)">.AD</b></div>
       <div class="mono" style="font-size:11px;color:var(--mute)" id="j-hello"></div></div>
     <div class="stat mono"><b id="j-today">0</b><div style="font-size:10px;color:var(--mute)" data-t="verifiedtoday">VERIFIED TODAY</div><div style="font-size:11px;color:var(--green)" id="j-earn"></div></div>
     <button class="ghost" onclick="openPaySheet()">💳</button>
@@ -131,7 +131,7 @@
   <div id="p-gate" class="hide" style="text-align:center;padding:6px 0 14px">
     <div style="font-size:38px">📍</div>
     <div style="font-weight:700;font-size:18px" data-t="toofar">Get closer to the pin</div>
-    <div class="bignum" id="g-dist">—</div>
+    <div class="bignum" id="g-dist">-</div>
     <div class="mono" style="font-size:12px;color:var(--mute)" data-t="gatehint">Placement unlocks within 265 ft (0.05 mi) of the stop. Distance updates live as you walk.</div>
   </div>
 
@@ -145,7 +145,7 @@
   <!-- step 2: structure -->
   <div id="p-struct" class="hide">
     <div style="font-weight:700;font-size:18px" data-t="structq">What did you place it on?</div>
-    <div class="mono" style="font-size:11px;color:var(--amber);margin-top:4px" data-t="legalnote">Only place where it's allowed — boards, businesses with permission, permitted kiosks.</div>
+    <div class="mono" style="font-size:11px;color:var(--amber);margin-top:4px" data-t="legalnote">Only place where it's allowed · boards, businesses with permission, permitted kiosks.</div>
     <div class="structgrid" id="structgrid"></div>
     <button class="primary" style="margin-top:14px" onclick="toStep3()" data-t="next">Next →</button>
   </div>
@@ -168,7 +168,7 @@
   <div class="mono" style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)">
     <span>📦</span><button class="ghost" onclick="$('fsheet').classList.add('hide')">✕</button></div>
   <div style="font-weight:700;font-size:18px" data-t="pickuptitle">Where should we print your flyers?</div>
-  <div class="mono" style="font-size:12px;color:var(--mute);margin:4px 0 14px" data-t="pickuphint">Pick a store near you — your manager sends the print order there and you pick it up. Or have them shipped.</div>
+  <div class="mono" style="font-size:12px;color:var(--mute);margin:4px 0 14px" data-t="pickuphint">Pick a store near you · your manager sends the print order there and you pick it up. Or have them shipped.</div>
   <label data-t="fullname">Full name for pickup (required)</label>
   <input id="ful-name" autocomplete="name">
   <button style="margin-top:12px" onclick="findStores()" data-t="findstores">📍 Find Staples / Office Depot near me</button>
@@ -220,8 +220,8 @@ const T={
   scanhint:{en:'This verifies the right flyer is at the right stop. Your test scan is discarded from analytics automatically.',
             es:'Esto verifica el volante correcto en la parada correcta. Tu escaneo de prueba se descarta de las estadísticas.'},
   structq:{en:'What did you place it on?',es:'¿Dónde lo colocaste?'},
-  legalnote:{en:"Only place where it's allowed — boards, businesses with permission, permitted kiosks.",
-             es:'Coloca solo donde esté permitido — tableros, negocios con permiso, quioscos autorizados.'},
+  legalnote:{en:"Only place where it's allowed · boards, businesses with permission, permitted kiosks.",
+             es:'Coloca solo donde esté permitido · tableros, negocios con permiso, quioscos autorizados.'},
   next:{en:'Next →',es:'Siguiente →'},photoq:{en:'Photo proof (required)',es:'Foto de prueba (obligatoria)'},
   photohint:{en:'Frame the whole flyer and its surroundings so the placement is verifiable.',
              es:'Encuadra el volante completo y su entorno para verificar la colocación.'},
@@ -237,31 +237,31 @@ const T={
   gatehint:{en:'Placement unlocks within 265 ft (0.05 mi) of the stop. Distance updates live as you walk.',
             es:'La colocación se desbloquea a 80 m (0.05 mi) de la parada. La distancia se actualiza mientras caminas.'},
   pickuptitle:{en:'Where should we print your flyers?',es:'¿Dónde imprimimos tus volantes?'},
-  pickuphint:{en:'Pick a store near you — your manager sends the print order there and you pick it up. Or have them shipped.',
-              es:'Elige una tienda cercana — tu gerente envía la orden de impresión y tú los recoges. O pide envío.'},
+  pickuphint:{en:'Pick a store near you · your manager sends the print order there and you pick it up. Or have them shipped.',
+              es:'Elige una tienda cercana · tu gerente envía la orden de impresión y tú los recoges. O pide envío.'},
   findstores:{en:'📍 Find Staples / Office Depot near me',es:'📍 Buscar Staples / Office Depot cerca'},
   orship:{en:'Or ship them to my address',es:'O envíalos a mi dirección'},
   saveship:{en:'Save shipping address',es:'Guardar dirección de envío'},
   setpickup:{en:'📦 Set flyer pickup / shipping',es:'📦 Elegir recogida / envío de volantes'},
-  pickupset:{en:'Pickup / shipping saved — your manager has the details',es:'Recogida / envío guardado — tu gerente tiene los detalles'},
+  pickupset:{en:'Pickup / shipping saved · your manager has the details',es:'Recogida / envío guardado · tu gerente tiene los detalles'},
   perflyer:{en:'/flyer',es:'/volante'},
   available:{en:'[ AVAILABLE JOBS ]',es:'[ TRABAJOS DISPONIBLES ]'},
   activejobs:{en:'[ MY ACTIVE JOBS ]',es:'[ MIS TRABAJOS ACTIVOS ]'},
   viewjob:{en:'View route & details →',es:'Ver ruta y detalles →'},
   apply:{en:'Apply for this job',es:'Aplicar a este trabajo'},
-  appliedtag:{en:'APPLIED — awaiting approval',es:'APLICADO — esperando aprobación'},
+  appliedtag:{en:'APPLIED · awaiting approval',es:'APLICADO · esperando aprobación'},
   rejectedtag:{en:'Not selected this time',es:'No seleccionado esta vez'},
   confirmpickup:{en:'📦 Scan any flyer QR to confirm pickup',es:'📦 Escanea cualquier QR para confirmar recogida'},
-  pickupscanhint:{en:'Scan any QR code from your printed batch. This confirms you have the flyers in hand — then your route unlocks.',
-                  es:'Escanea cualquier código QR de tu lote impreso. Esto confirma que tienes los volantes — luego se desbloquea tu ruta.'},
+  pickupscanhint:{en:'Scan any QR code from your printed batch. This confirms you have the flyers in hand · then your route unlocks.',
+                  es:'Escanea cualquier código QR de tu lote impreso. Esto confirma que tienes los volantes · luego se desbloquea tu ruta.'},
   pickupmanual:{en:'📦 Confirm flyer pickup',es:'📦 Confirmar recogida de volantes'},
-  pickupok:{en:'Pickup confirmed — route unlocked',es:'Recogida confirmada — ruta desbloqueada'},
+  pickupok:{en:'Pickup confirmed · route unlocked',es:'Recogida confirmada · ruta desbloqueada'},
   total:{en:'total',es:'total'},
-  applysent:{en:'Application sent — you will see it here once approved',es:'Aplicación enviada — la verás aquí al ser aprobada'},
+  applysent:{en:'Application sent · you will see it here once approved',es:'Aplicación enviada · la verás aquí al ser aprobada'},
   noavail:{en:'No open jobs right now. Check back soon.',es:'No hay trabajos abiertos ahora. Vuelve pronto.'},
   fullname:{en:'Full name for pickup (required)',es:'Nombre completo para recoger (obligatorio)'},
   nameneeded:{en:'Full name is required for pickup',es:'Se requiere el nombre completo para recoger'},
-  skippickup:{en:'Skip — I already have the flyers',es:'Omitir — ya tengo los volantes'},
+  skippickup:{en:'Skip · I already have the flyers',es:'Omitir · ya tengo los volantes'},
   payinfo:{en:'Payment details',es:'Datos de pago'},
   paymethod:{en:'How do you want to get paid?',es:'¿Cómo quieres recibir tu pago?'},
   payhandle:{en:'Handle / phone / email for that method',es:'Usuario / teléfono / correo de ese método'},
@@ -433,7 +433,7 @@ function drawActions(){
   const payout=(((job.pay_per_flyer_cents||0)*job.flyer_count)/100).toFixed(2);
   // browsing → apply (fulfillment info collected during application)
   if(!myAssignment){
-    a.innerHTML=`<button class="primary" onclick="$('fsheet').classList.remove('hide')">${t('apply')} — $${payout}</button>`;
+    a.innerHTML=`<button class="primary" onclick="$('fsheet').classList.remove('hide')">${t('apply')} · $${payout}</button>`;
     return;
   }
   if(st==='applied'){a.innerHTML=`<div class="mono" style="text-align:center;color:var(--amber);padding:8px">⏳ ${t('appliedtag')}</div>`;return;}
@@ -452,7 +452,7 @@ function drawActions(){
   }else{
     const next=stops.find(s=>s.status==='todo');
     a.innerHTML=next
-      ?`<button class="primary" onclick="startStop('${next.id}')">${t('startnext')} — ${esc(next.label)}</button>`
+      ?`<button class="primary" onclick="startStop('${next.id}')">${t('startnext')} · ${esc(next.label)}</button>`
       :`<div class="mono" style="text-align:center;color:var(--green);padding:6px">✓ ${t('jobdone')}</div>`;
   }
 }
@@ -494,16 +494,16 @@ async function findStores(){
       b.onclick=()=>savePickup(f.text,f.place_name);
       $('storelist').appendChild(b);
     });
-    if(!feats.length)$('storelist').innerHTML='<div class="mono" style="color:var(--amber);font-size:12px">No stores found nearby — use shipping below</div>';
+    if(!feats.length)$('storelist').innerHTML='<div class="mono" style="color:var(--amber);font-size:12px">No stores found nearby · use shipping below</div>';
   },()=>toast('Enable location access to find stores'));
 }
 async function submitFulfillment(fields){
-  if(myAssignment){ // already on the job — just updating pickup/shipping
+  if(myAssignment){ // already on the job · just updating pickup/shipping
     const {error}=await sb.from('assignments').update(fields).eq('id',myAssignment.id);
     if(error)return toast(error.message);
     Object.assign(myAssignment,fields);
     $('fsheet').classList.add('hide');toast(t('pickupset'));drawActions();
-  }else{ // this IS the application — apply with fulfillment info attached
+  }else{ // this IS the application · apply with fulfillment info attached
     const {data,error}=await sb.from('assignments').insert({
       campaign_id:job.id,worker_id:me.id,status:'applied',
       flyers_assigned:job.flyer_count,...fields}).select().single();
@@ -595,10 +595,10 @@ function startScanner(){
       stopScanner();
       $('p-scan').classList.add('hide');$('p-struct').classList.remove('hide');setSteps(2);
     }else{
-      $('flash-bad-msg').textContent=t('wrongqr')+(okCampaign?` — ${t('placed')} ≠ ${active.label}`:'');
+      $('flash-bad-msg').textContent=t('wrongqr')+(okCampaign?` · ${t('placed')} ≠ ${active.label}`:'');
       flash('flash-bad');
     }
-  }).catch(()=>toast('Camera unavailable — allow camera access in browser settings'));
+  }).catch(()=>toast('Camera unavailable · allow camera access in browser settings'));
 }
 function stopScanner(){if(scanner){scanner.stop().catch(()=>{});scanner=null;$('qr-region').innerHTML='';}}
 function toStep3(){

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScanMap — Flyers that report back</title>
-<meta name="description" content="Every printed ad gets its own QR and its own dot on a live map. Scans, foot traffic, and sales — tracked to the exact corner.">
+<title>SCANS.AD | Flyers that report back</title>
+<meta name="description" content="Every printed ad gets its own QR code and its own dot on a live map. Scans, foot traffic, and sales, tracked to the exact corner.">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
@@ -186,7 +186,7 @@
   .trialtag{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--ink);color:var(--green);
     display:inline-block;padding:4px 10px;letter-spacing:.12em;margin-bottom:8px}
   .priceflyer ul{list-style:none;margin:18px 0 26px;font-size:14px;line-height:2.1;color:var(--inkmute)}
-  .priceflyer li::before{content:"— "}
+  .priceflyer li::before{content:"- "}
   .pf-note{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--inkmute);line-height:1.7;margin-top:4px}
 
   /* worker strip + footer */
@@ -201,7 +201,7 @@
 <body>
 
 <nav><div class="wrap">
-  <div class="logo">SCAN<b>MAP</b></div>
+  <div class="logo">SCANS<b>.AD</b></div>
   <div class="links">
     <a href="#demo">Live map</a>
     <a href="#uses">Use cases</a>
@@ -226,12 +226,12 @@
         <span style="font-size:9px;letter-spacing:.06em">LOCATION: TELEPHONE POLE</span>
       </div>
     </div>
-    <img id="fl-map" class="flmap" alt="Coverage map — Belmont Shore streets">
+    <img id="fl-map" class="flmap" alt="Coverage map · Belmont Shore streets">
   </div>
   <div>
     <div class="tagline">[ OFFLINE AD INTELLIGENCE ]</div>
     <h1 class="disp">Flyers that<br>report back.</h1>
-    <p>A poster on a pole still out-pulls a Facebook ad — people trust paper. It just never told you what it did all day. <b>ScanMap fixes that:</b> every sheet gets its own QR and its own dot on a live map. Someone scans at 2nd &amp; Park, and 2nd &amp; Park gets the credit. Scans. Foot traffic. Sales.</p>
+    <p>A poster on a pole still out-pulls a Facebook ad. People trust paper. The problem was always measurement, and that's the part we fixed: every sheet gets its own QR and its own dot on a live map. Someone scans at 2nd &amp; Park, and 2nd &amp; Park gets the credit. Scans. Foot traffic. Sales.</p>
     <div style="display:flex;gap:14px;margin-top:28px;flex-wrap:wrap">
       <a class="btn stamp" href="login.html">START 7-DAY FREE TRIAL</a>
       <a class="btn ghost-d" href="#demo">SEE THE LIVE MAP ↓</a>
@@ -245,9 +245,9 @@
     <div class="mapbar">
       <span><span class="dot"></span>
         <select id="lv-camp" class="periodsel">
-          <option value="A" selected>CAMPAIGN A — CREATIVE A</option>
-          <option value="B">CAMPAIGN B — CREATIVE B</option>
-          <option value="C">CAMPAIGN C — CREATIVE C</option>
+          <option value="A" selected>CAMPAIGN A · CREATIVE A</option>
+          <option value="B">CAMPAIGN B · CREATIVE B</option>
+          <option value="C">CAMPAIGN C · CREATIVE C</option>
         </select> · BELMONT SHORE</span>
       <span><span id="lv-locs">12</span> locations · <b style="color:var(--green)" id="lv-count">…</b> scans ·
         <select id="lv-period" class="periodsel">
@@ -264,7 +264,7 @@
       <span class="sw"><i style="background:var(--hy)"></i>some</span>
       <span class="sw"><i style="background:var(--ho)"></i>busy</span>
       <span class="sw"><i style="background:var(--hr)"></i>heavy</span>
-      <span style="margin-left:auto">sample data — your campaign maps your streets</span>
+      <span style="margin-left:auto">sample data · your campaign maps your streets</span>
     </div>
   </div>
 </div></section>
@@ -273,14 +273,14 @@
 <section class="paper-sec"><div class="wrap">
   <div class="sec-label">[ WHY IT WORKS ]</div>
   <h2 class="disp">One sheet. One code.<br>One corner.</h2>
-  <p class="lead">Every flyer in your batch carries a QR that belongs to exactly one spot on the map. So when it gets scanned, there's no guessing where the interest came from — the corner itself takes the credit, the same way an ad set does online. Except this "click" came from a person standing on your block, not a bot farm bidding up your auction.</p>
+  <p class="lead">Every flyer in your batch carries a QR that belongs to exactly one spot on the map. So when it gets scanned, there's no guessing where the interest came from · the corner itself takes the credit, the same way an ad set does online. Except this "click" came from a person standing on your block, not a bot farm bidding up your auction.</p>
   <div class="chart">
-    <div class="chead"><div>Facebook Ads give you…</div><div>A ScanMap street run gives you…</div></div>
-    <div class="crow"><div>"Impressions" — an estimate of who maybe saw it</div><div>People physically standing in your neighborhood</div></div>
-    <div class="crow"><div>Clicks that might be bots or thumb-slips</div><div>Scans — someone stopped on the sidewalk, on purpose</div></div>
-    <div class="crow"><div>Attribution to an audience segment, roughly</div><div>Attribution to the exact pole, board, or window</div></div>
+    <div class="chead"><div>Facebook Ads give you…</div><div>A SCANS.AD street run gives you…</div></div>
+    <div class="crow"><div>"Impressions", an estimate of who maybe saw it</div><div>People physically standing in your neighborhood</div></div>
+    <div class="crow"><div>Clicks that might be bots or thumb-slips</div><div>Scans: someone stopped on the sidewalk, on purpose</div></div>
+    <div class="crow"><div>Attribution to a rough audience segment</div><div>Attribution to the exact pole, board, or window</div></div>
     <div class="crow"><div>The dashboard's word that your ad ran</div><div>A GPS-stamped photo of every single placement</div></div>
-    <div class="crow"><div>Auction pricing that climbs with competition</div><div>Paper and shoe leather — flat, forever</div></div>
+    <div class="crow"><div>Auction pricing that climbs with competition</div><div>Paper and shoe leather. Flat, forever.</div></div>
   </div>
 </div></section>
 
@@ -290,17 +290,17 @@
   <h2 class="disp">If it goes on a wall,<br>it goes on the map.</h2>
   <div class="board">
     <div class="pincard feature"><div class="idx">1A</div><span class="ptag pri">PRIORITY USE CASE</span><h3>Local businesses</h3>
-      <p>This is what ScanMap was built for. Put your promo on the streets around your shop and find out which blocks actually walk through the door — then spend every next advertising dollar on those corners only. Restaurants, salons, gyms, repair shops, boutiques: if your customers live within two miles, your best ad channel is the pole they walk past every day.</p></div>
+      <p>This is what SCANS.AD was built for. Put your promo on the streets around your shop and find out which blocks actually walk through the door · then spend every next advertising dollar on those corners only. Restaurants, salons, gyms, repair shops, boutiques: if your customers live within two miles, your best ad channel is the pole they walk past every day.</p></div>
     <div class="pincard"><div class="idx">2B</div><h3>Local lead gen</h3>
-      <p>"We buy phones." "Free quote." Know which corners produce actual leads instead of drive-by curiosity — tracked all the way to the conversion.</p></div>
+      <p>"We buy phones." "Free quote." Know which corners produce actual leads instead of drive-by curiosity, tracked all the way to the conversion.</p></div>
     <div class="pincard"><div class="idx">3C</div><h3>Events &amp; gatherings</h3>
-      <p>Shows, games, markets, meetups. See which neighborhoods are scanning for tickets while there's still time to move posters — not in a recap.</p></div>
+      <p>Shows, games, markets, meetups. See which neighborhoods are scanning for tickets while there is still time to move posters, not in a recap.</p></div>
     <div class="pincard"><div class="idx">4D</div><h3>Launches &amp; openings</h3>
       <p>Flood the zone before opening day and watch the heat build street by street. Fix the second print run while it still matters.</p></div>
     <div class="pincard"><div class="idx">5E</div><h3>Community &amp; nonprofits</h3>
-      <p>Drives, fundraisers, volunteer calls — with a map that shows the board exactly which streets every signup came from.</p></div>
+      <p>Drives, fundraisers, volunteer calls, with a map that shows your board exactly which streets every signup came from.</p></div>
     <div class="pincard"><div class="idx">6F</div><h3>Lost pets</h3>
-      <p>We blanket the area with tracked signs in one afternoon. Scans cluster where your pet's been spotted — that's where you search next.</p></div>
+      <p>We blanket the area with tracked signs in one afternoon. Scans cluster where your pet was last spotted. Search there next.</p></div>
   </div>
 </div></section>
 
@@ -312,9 +312,9 @@
     <div class="stop"><div class="pin">1A</div><h3>Upload one design</h3>
       <p>The batch generator stamps every copy with its own QR and location label. Print-ready in seconds.</p></div>
     <div class="stop"><div class="pin">2B</div><h3>Pin the streets</h3>
-      <p>Drop pins where the ads should live — or let the crew pick spots on foot, GPS-pinned as they go.</p></div>
+      <p>Drop pins where the ads should live, or let the crew pick spots on foot, GPS-pinned as they go.</p></div>
     <div class="stop"><div class="pin">3C</div><h3>Verified placement</h3>
-      <p>Every spot gets QR-confirmed, photographed, and location-stamped. No proof, no placement, no pay.</p></div>
+      <p>Every spot is QR-confirmed, photographed, and location-stamped. No proof, no placement, no pay.</p></div>
     <div class="stop"><div class="pin">4D</div><h3>Read the heat</h3>
       <p>Scans light the map live. Red corners earn the reprint. Quiet ones stop wasting your paper.</p></div>
   </div>
@@ -323,14 +323,14 @@
 <!-- PRICING (dark bg, two paper flyers) -->
 <section class="dark" id="pricing" style="padding-top:0"><div class="wrap">
   <div class="sec-label">[ TWO WAYS IN ]</div>
-  <h2 class="disp">Run it yourself, or<br>hand us the stapler.</h2>
+  <h2 class="disp">Run it yourself, or<br>have us run it.</h2>
   <div class="pricegrid">
     <div class="priceflyer a">
       <div class="trialtag">7-DAY FREE TRIAL · 10-QR TEST BATCH</div>
       <h3>Do-it-yourself platform</h3>
       <div class="bigprice"><span class="hl">$29.99</span><small>/mo</small></div>
-      <div class="pf-note" style="margin-bottom:2px"><b>or $249.99/year — save $110.</b></div>
-      <div class="pf-note">The trial isn't a demo — it's 10 real tracked QR codes. Run a mini-campaign on your own street before you pay a dime.</div>
+      <div class="pf-note" style="margin-bottom:2px"><b>or $249.99/year (save $110)</b></div>
+      <div class="pf-note">The trial is not a demo. It is 10 live tracked QR codes: run a small campaign on your own street before you pay anything.</div>
       <ul>
         <li>100 tracked placements included / month</li>
         <li>$0.35 per additional placement after 100</li>
@@ -343,8 +343,8 @@
     </div>
     <div class="priceflyer b">
       <h3>Done-for-you campaign</h3>
-      <div class="bigprice">$4–8<small>/ad</small></div>
-      <div class="pf-note">Final quote per campaign — volume and coverage set your rate. You get the map; we get the blisters.</div>
+      <div class="bigprice">$4-8<small>/ad</small></div>
+      <div class="pf-note">Quoted per campaign. Volume and coverage set the rate.</div>
       <ul>
         <li>Professional printing included</li>
         <li>Photo-verified placement by our crew</li>
@@ -352,13 +352,13 @@
         <li>Built for local businesses, events &amp; launches</li>
         <li>Lost-pet blitz campaigns</li>
       </ul>
-      <a class="btn ghost-p" href="mailto:CHANGE-ME@example.com?subject=ScanMap%20campaign%20inquiry">REQUEST A QUOTE</a>
+      <a class="btn ghost-p" href="mailto:CHANGE-ME@example.com?subject=SCANS.AD%20campaign%20inquiry">REQUEST A QUOTE</a>
     </div>
   </div>
   <div class="workstrip">
     <div>
       <h3>Get paid to place ads</h3>
-      <p>Browse open routes near you, see the pay per flyer before you accept, get paid on photo-verified work.</p>
+      <p>Browse open routes near you, see the pay per flyer up front, and get paid on photo-verified work.</p>
     </div>
     <a class="btn ghost-d" href="work.html">WORK FOR US →</a>
   </div>
@@ -373,7 +373,7 @@
 </section>
 
 <footer><div class="wrap">
-  <span>SCANMAP — offline ad intelligence</span>
+  <span>SCANS.AD · offline ad intelligence</span>
   <span>Long Beach, CA · © 2026</span>
 </div></footer>
 
@@ -389,7 +389,7 @@
   }catch(e){}
 })();
 
-/* ── flyer scan counter: starts at 83, +1 after 17s, then +1 every 5 min. In-memory only — resets on refresh ── */
+/* ── flyer scan counter: starts at 83, +1 after 17s, then +1 every 5 min. In-memory only · resets on refresh ── */
 (function(){
   const el=document.getElementById('fl-count');
   let n=83;

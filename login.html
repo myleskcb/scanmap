@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScanMap Command — Campaign Control</title>
+<title>SCANS.AD Command</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
@@ -90,8 +90,8 @@
 <div id="auth">
   <div style="margin-bottom:26px">
     <div class="mono" style="color:var(--green);font-size:11px;letter-spacing:.15em">[ CAMPAIGN CONTROL ]</div>
-    <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin-top:6px">SCAN<b style="color:var(--green)">MAP</b> COMMAND</div>
-    <div class="sub" style="margin-top:6px">Business side — build campaigns, print QR batches, assign field workers, track scans.</div>
+    <div style="font-family:'Archivo Black',sans-serif;font-size:27px;margin-top:6px">SCANS<b style="color:var(--green)">.AD</b> COMMAND</div>
+    <div class="sub" style="margin-top:6px">Business side · build campaigns, print QR batches, assign field workers, track scans.</div>
   </div>
   <div class="card">
     <label>Email</label><input id="a-email" type="email" autocomplete="email">
@@ -103,13 +103,13 @@
     </div>
     <div id="a-msg" class="sub" style="margin-top:12px;color:var(--amber)"></div>
   </div>
-  <div class="sub" style="margin-top:14px">New accounts start as field workers. Promote your own account to admin once — instructions in SETUP-GUIDE.md.</div>
+  <div class="sub" style="margin-top:14px">New accounts start as field workers. Promote your own account to admin once · instructions in SETUP-GUIDE.md.</div>
 </div>
 
 <!-- ══════════ APP SHELL ══════════ -->
 <div id="app" class="hide">
   <div id="topbar">
-    <div class="logo mono">SCAN<b>MAP</b> / COMMAND</div>
+    <div class="logo mono">SCANS<b>.AD</b> / COMMAND</div>
     <nav class="mono">
       <button data-v="dash" class="active" onclick="go('dash')">Dashboard</button>
       <button data-v="camps" onclick="go('camps')">Campaigns</button>
@@ -128,10 +128,10 @@
       <h1>Mission control</h1>
       <div class="sub"><span class="dot"></span> live · scans exclude worker verification scans</div>
       <div class="kpis">
-        <div class="kpi"><div class="num" id="k-scans">—</div><div class="lbl">Real scans (all time)</div></div>
-        <div class="kpi"><div class="num" id="k-active">—</div><div class="lbl">Active campaigns</div></div>
-        <div class="kpi"><div class="num" id="k-verified">—</div><div class="lbl">Verified placements</div></div>
-        <div class="kpi"><div class="num" id="k-workers">—</div><div class="lbl">Field workers</div></div>
+        <div class="kpi"><div class="num" id="k-scans">-</div><div class="lbl">Real scans (all time)</div></div>
+        <div class="kpi"><div class="num" id="k-active">-</div><div class="lbl">Active campaigns</div></div>
+        <div class="kpi"><div class="num" id="k-verified">-</div><div class="lbl">Verified placements</div></div>
+        <div class="kpi"><div class="num" id="k-workers">-</div><div class="lbl">Field workers</div></div>
       </div>
       <h2>Latest field activity</h2>
       <div class="card" style="padding:0"><table id="t-activity">
@@ -155,14 +155,14 @@
 
         <div class="wstep" data-step="1">
           <h2 style="margin-top:0">1 · What's this campaign called?</h2>
-          <input id="c-name" placeholder="Belmont Shore — Grand Opening" style="font-size:16px;padding:14px" autofocus>
-          <div class="sub" style="margin-top:10px">Use the client or promo name — it shows on job cards and reports.</div>
+          <input id="c-name" placeholder="Belmont Shore · Grand Opening" style="font-size:16px;padding:14px" autofocus>
+          <div class="sub" style="margin-top:10px">Use the client or promo name · it shows on job cards and reports.</div>
         </div>
 
         <div class="wstep hide" data-step="2">
           <h2 style="margin-top:0">2 · Where will the ads go up?</h2>
           <div class="row" style="gap:8px">
-            <input id="c-zip" placeholder="ZIP code or city — e.g. 90803" style="flex:1" onkeydown="if(event.key==='Enter')locateZip()">
+            <input id="c-zip" placeholder="ZIP code or city · e.g. 90803" style="flex:1" onkeydown="if(event.key==='Enter')locateZip()">
             <button onclick="locateZip()" style="width:auto;flex-shrink:0">⌖ Locate</button>
           </div>
           <div class="sub" style="margin-top:10px">This centers the map when you drop pins in a later step. Optional but recommended.</div>
@@ -194,7 +194,7 @@
             <button style="padding:8px 12px" onclick="setPreset(100,5)">100 @ $5</button>
             <button style="padding:8px 12px" onclick="setPreset(200,4)">200 @ $4</button>
           </div>
-          <div class="mono" id="pr-summary" style="margin-top:16px;color:var(--green);font-size:14px">—</div>
+          <div class="mono" id="pr-summary" style="margin-top:16px;color:var(--green);font-size:14px">-</div>
           <button style="margin-top:10px" onclick="$('pay-cfg').classList.toggle('hide')">▸ Configure payout &amp; see the breakdown</button>
           <div id="pay-cfg" class="hide">
             <label>Price charged to client (total)</label><input id="c-price" value="$350.00" oninput="calcEcon()">
@@ -216,17 +216,17 @@
             <button class="choice sel" id="mode-opt" onclick="pickMode('optimized')" style="text-align:left;padding:16px">
               <b>Pre-mapped route</b><br><span class="sub">You drop the pins on a map next. The worker follows them in order.</span></button>
             <button class="choice" id="mode-free" onclick="pickMode('freestyle')" style="text-align:left;padding:16px">
-              <b>Freestyle</b><br><span class="sub">No pins. The worker picks allowed spots as they walk — each one is GPS-pinned automatically.</span></button>
+              <b>Freestyle</b><br><span class="sub">No pins. The worker picks allowed spots as they walk · each one is GPS-pinned automatically.</span></button>
           </div>
           <input type="hidden" id="c-mode" value="optimized">
         </div>
 
         <div class="wstep hide" data-step="8">
           <h2 style="margin-top:0">8 · Drop the pins</h2>
-          <div class="sub" style="margin-bottom:10px">Click the map — every click adds a numbered stop on that spot. Misclick? Delete it from the list below.</div>
+          <div class="sub" style="margin-bottom:10px">Click the map · every click adds a numbered stop on that spot. Misclick? Delete it from the list below.</div>
           <div id="map" style="height:380px"></div>
           <div id="pinlist" class="card mono" style="margin-top:10px;padding:6px 12px;font-size:12px;max-height:170px;overflow:auto">
-            <span class="sub">No pins yet — click the map to drop them.</span>
+            <span class="sub">No pins yet · click the map to drop them.</span>
           </div>
           <div class="sub mono" id="c-pincount" style="margin-top:6px">0 pins</div>
         </div>
@@ -256,9 +256,9 @@
         </div>
       </div>
       <div class="kpis">
-        <div class="kpi"><div class="num" id="d-kscans">—</div><div class="lbl">Real scans</div></div>
-        <div class="kpi"><div class="num" id="d-kplaced">—</div><div class="lbl">Placed / total</div></div>
-        <div class="kpi"><div class="num" id="d-ktop">—</div><div class="lbl">Top stop</div></div>
+        <div class="kpi"><div class="num" id="d-kscans">-</div><div class="lbl">Real scans</div></div>
+        <div class="kpi"><div class="num" id="d-kplaced">-</div><div class="lbl">Placed / total</div></div>
+        <div class="kpi"><div class="num" id="d-ktop">-</div><div class="lbl">Top stop</div></div>
       </div>
 
       <div class="card mono" style="font-size:12px;margin-bottom:16px;line-height:2">
@@ -271,7 +271,7 @@
       <!-- BULK FLYER GENERATOR -->
       <div class="card" style="margin-bottom:16px">
         <h2 style="margin-top:0">Flyer batch generator</h2>
-        <div class="sub">Upload your flyer design once. Every stop gets its own print-ready PNG with a unique QR code and its location label (1A, 2B…) — so you always know which flyer goes where.</div>
+        <div class="sub">Upload your flyer design once. Every stop gets its own print-ready PNG with a unique QR code and its location label (1A, 2B…) · so you always know which flyer goes where.</div>
         <div class="grid2" style="margin-top:14px">
           <div>
             <label>Flyer image (PNG or JPG)</label>
@@ -283,14 +283,14 @@
               <option value="tr">Top right</option>
               <option value="tl">Top left</option>
             </select>
-            <div class="sub" style="margin-top:12px;color:var(--green)">▸ Drag the QR anywhere · corner handle resizes it.<br>▸ Drag the ID line to any corner of the flyer.</div>
+            <div class="sub" style="margin-top:12px;color:var(--green)">▸ Drag the QR anywhere. Corner handle resizes it.<br>▸ Drag the one-line ID tag to any corner.</div>
             <div class="row" style="margin-top:16px">
               <button class="primary" onclick="downloadFlyerBatch()">↓ Generate flyer ZIP</button>
               <span class="sub" id="fb-status"></span>
             </div>
           </div>
           <div>
-            <div class="sub" style="margin-bottom:6px">Live preview — first stop (green outline won't print)</div>
+            <div class="sub" style="margin-bottom:6px">Live preview · first stop (green outline won't print)</div>
             <canvas id="fb-preview" style="width:100%;border:1px solid var(--line);border-radius:4px;background:#000;display:block;touch-action:none;cursor:grab"></canvas>
           </div>
         </div>
@@ -299,7 +299,7 @@
       <div class="grid2">
         <div class="card">
           <h2 style="margin-top:0">Applications</h2>
-          <div class="sub" style="margin-bottom:6px">Workers find this job on their board once the campaign is Active. They review the route map and payout, apply with their print pickup or shipping details attached, and you accept or reject here. Accepted workers scan any QR from the printed batch to confirm pickup — then their route unlocks.</div>
+          <div class="sub" style="margin-bottom:6px">Workers find this job on their board once the campaign is Active. They review the route map and payout, apply with their print pickup or shipping details attached, and you accept or reject here. Accepted workers scan any QR from the printed batch to confirm pickup · then their route unlocks.</div>
           <div id="d-assigned" class="sub" style="margin-top:12px"></div>
         </div>
         <div class="card" style="padding:0;max-height:320px;overflow:auto">
@@ -316,10 +316,10 @@
         <select id="an-camp" style="width:auto;min-width:240px" onchange="renderAnalytics()"></select>
       </div>
       <div class="kpis">
-        <div class="kpi"><div class="num" id="an-scans">—</div><div class="lbl">Real scans</div></div>
-        <div class="kpi"><div class="num" id="an-convs">—</div><div class="lbl">Conversions</div></div>
-        <div class="kpi"><div class="num" id="an-rate">—</div><div class="lbl">Scan → conversion</div></div>
-        <div class="kpi"><div class="num" id="an-top">—</div><div class="lbl">Hottest stop</div></div>
+        <div class="kpi"><div class="num" id="an-scans">-</div><div class="lbl">Real scans</div></div>
+        <div class="kpi"><div class="num" id="an-convs">-</div><div class="lbl">Conversions</div></div>
+        <div class="kpi"><div class="num" id="an-rate">-</div><div class="lbl">Scan → conversion</div></div>
+        <div class="kpi"><div class="num" id="an-top">-</div><div class="lbl">Hottest stop</div></div>
       </div>
       <div class="row" style="margin-bottom:10px">
         <button id="an-heatbtn" onclick="toggleHeat()">Heatmap: ON</button>
@@ -346,22 +346,22 @@
       <div class="card mono" id="scanfeed" style="font-size:12px;max-height:280px;overflow:auto;padding:8px 14px"></div>
 
       <details class="card" style="margin-top:18px">
-        <summary class="mono" style="cursor:pointer;color:var(--green);font-size:13px">▸ Conversion tracking — install on any website</summary>
-        <div class="sub" style="margin:12px 0">Works on any site — custom-built, web-designer built, Wix, WordPress, Shopify. Two ways to install: paste the snippet, or add the plugin file. Then mark what counts as a conversion.</div>
+        <summary class="mono" style="cursor:pointer;color:var(--green);font-size:13px">▸ Conversion tracking · install on any website</summary>
+        <div class="sub" style="margin:12px 0">Works on any site · custom-built, web-designer built, Wix, WordPress, Shopify. Two ways to install: paste the snippet, or add the plugin file. Then mark what counts as a conversion.</div>
         <label>Your conversion endpoint</label>
         <input id="cv-url" readonly onclick="this.select()">
-        <label>Option 1 — copy-paste snippet (goes right before &lt;/body&gt;)</label>
+        <label>Option 1 · copy-paste snippet (goes right before &lt;/body&gt;)</label>
         <pre id="cv-snip" class="mono" style="background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:12px;font-size:11px;line-height:1.6;overflow:auto;max-height:220px;white-space:pre-wrap"></pre>
         <div class="row" style="margin-top:10px">
           <button onclick="copySnippet()">⧉ Copy snippet</button>
-          <button onclick="downloadTracker()">↓ Option 2 — download scanmap-tracker.js plugin</button>
+          <button onclick="downloadTracker()">↓ Option 2 · download scansad-tracker.js plugin</button>
         </div>
         <div class="sub" style="margin-top:12px;line-height:1.9">
           <b style="color:var(--ink)">Marking the conversion (either option):</b><br>
-          · Add <span class="mono" style="color:var(--green)">data-scanmap-convert</span> to your lead form or buy button — fires automatically on submit/click<br>
-          · Or add <span class="mono" style="color:var(--green)">data-scanmap-thankyou</span> to the &lt;body&gt; tag of a thank-you page — fires on page load<br>
+          · Add <span class="mono" style="color:var(--green)">data-SCANS.AD-convert</span> to your lead form or buy button · fires automatically on submit/click<br>
+          · Or add <span class="mono" style="color:var(--green)">data-SCANS.AD-thankyou</span> to the &lt;body&gt; tag of a thank-you page · fires on page load<br>
           · Or call <span class="mono" style="color:var(--green)">scanmapConvert()</span> anywhere in your own code<br>
-          For the plugin file: upload scanmap-tracker.js to the site and add <span class="mono" style="color:var(--green)">&lt;script src="scanmap-tracker.js"&gt;&lt;/script&gt;</span> before &lt;/body&gt;.
+          For the plugin file: upload scansad-tracker.js to the site and add <span class="mono" style="color:var(--green)">&lt;script src="scansad-tracker.js"&gt;&lt;/script&gt;</span> before &lt;/body&gt;.
         </div>
       </details>
     </section>
@@ -401,7 +401,7 @@ async function fillLetterSelect(){
   const sel=$('c-letter'); sel.innerHTML='';
   for(let i=0;i<26;i++){
     const L=String.fromCharCode(65+i);
-    sel.insertAdjacentHTML('beforeend',`<option value="${L}" ${used.has(L)?'':''}>${L}${used.has(L)?' — in use':''}</option>`);
+    sel.insertAdjacentHTML('beforeend',`<option value="${L}" ${used.has(L)?'':''}>${L}${used.has(L)?' · in use':''}</option>`);
   }
   for(let i=0;i<26;i++){const L=String.fromCharCode(65+i);if(!used.has(L)){sel.value=L;break;}}
 }
@@ -425,7 +425,7 @@ async function boot(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user)return;
   const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).single();
-  if(!prof){$('a-msg').textContent='Profile not found — confirm your email first, then sign in.';return;}
+  if(!prof){$('a-msg').textContent='Profile not found · confirm your email first, then sign in.';return;}
   if(prof.role!=='admin'){$('a-msg').textContent='This account is a field worker. Promote it to admin (SETUP-GUIDE.md step 5) or use the Field app.';return;}
   me=prof;
   $('auth').classList.add('hide');$('app').classList.remove('hide');
@@ -460,7 +460,7 @@ async function loadDash(){
   for(const a of acts||[]){
     const img=await proofUrl(a.photo_path);
     tb.insertAdjacentHTML('beforeend',`<tr>
-      <td>${img?`<img class="proof" src="${img}">`:'—'}</td>
+      <td>${img?`<img class="proof" src="${img}">`:'-'}</td>
       <td>${esc(a.stops?.label)}</td><td>${esc(a.structure_type)}</td>
       <td>${esc(a.profiles?.full_name)}</td><td>${esc(a.campaigns?.name)}</td><td>${ago(a.placed_at)}</td></tr>`);
   }
@@ -510,7 +510,7 @@ function wNext(){
   if(wStep===1&&!$('c-name').value.trim())return toast('Give the campaign a name first');
   if(wStep===4&&!$('c-url').value.trim())return toast('Enter the link a scan should open');
   if(wStep===7&&$('c-mode').value==='freestyle'){wStep=9;wShow();return;}
-  if(wStep===8&&!newPins.length)return toast('Drop at least one pin — or go back and pick Freestyle');
+  if(wStep===8&&!newPins.length)return toast('Drop at least one pin · or go back and pick Freestyle');
   wStep=Math.min(W_MAX,wStep+1);wShow();
 }
 function wBack(){
@@ -546,7 +546,7 @@ async function locateZip(){
     const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(q)+
       '.json?country=US&limit=1&access_token='+MAPBOX_TOKEN);
     const j=await r.json(); const f=j.features&&j.features[0];
-    if(!f)return toast('Location not found — try a ZIP or "city, state"');
+    if(!f)return toast('Location not found · try a ZIP or "city, state"');
     initMap(); geoCenter={lng:f.center[0],lat:f.center[1]};
     map.flyTo({center:f.center,zoom:14,duration:1200});
     toast('Map centered: '+f.place_name);
@@ -590,7 +590,7 @@ async function lookupStreet(pin){
 }
 function renderPinList(){
   const el=$('pinlist'); if(!el)return;
-  if(!newPins.length){el.innerHTML='<span class="sub">No pins yet — click the map to drop them.</span>';return;}
+  if(!newPins.length){el.innerHTML='<span class="sub">No pins yet · click the map to drop them.</span>';return;}
   el.innerHTML=newPins.map((p,i)=>`
     <div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)">
       <b style="color:var(--green);min-width:34px">${p.label}</b>
@@ -648,12 +648,12 @@ async function openCampaign(id){
       </div>
     </details>`;
   $('d-activate').textContent=c.status==='active'?'Mark done':'Activate';
-  // letter selector — current letter selected, in-use letters marked
+  // letter selector · current letter selected, in-use letters marked
   const {data:allC}=await sb.from('campaigns').select('id,letter').in('status',['draft','active']);
   const used=new Set((allC||[]).filter(x=>x.id!==c.id).map(x=>x.letter));
   $('d-letter').innerHTML=Array.from({length:26},(_,i)=>{
     const L=String.fromCharCode(65+i);
-    return `<option value="${L}">${L}${used.has(L)?' — in use':''}</option>`;
+    return `<option value="${L}">${L}${used.has(L)?' · in use':''}</option>`;
   }).join('');
   $('d-letter').value=c.letter||'A';
   const {data:asg}=await sb.from('assignments')
@@ -665,13 +665,13 @@ async function openCampaign(id){
     const done=perWorker[a.worker_id]||0;
     const owed=done*(c.pay_per_flyer_cents||0)/100;
     const ful=a.fulfillment_method==='pickup'
-      ?`📦 Pickup: <b>${esc(a.pickup_location)}</b> — under name <b>${esc(a.pickup_name||'(not given)')}</b><br><span style="color:var(--mute)">${esc(a.pickup_address)}</span>`
+      ?`📦 Pickup: <b>${esc(a.pickup_location)}</b> · under name <b>${esc(a.pickup_name||'(not given)')}</b><br><span style="color:var(--mute)">${esc(a.pickup_address)}</span>`
       :a.fulfillment_method==='shipping'
       ?`📦 Ship to: <b>${esc(a.shipping_address)}</b>`
       :`<span style="color:var(--amber)">📦 No print pickup/shipping set yet</span>`;
     const stTag=a.status==='applied'?'<span class="tag amber">APPLIED</span>'
-      :a.status==='accepted'?'<span class="tag green">ACCEPTED — awaiting flyer pickup</span>'
-      :a.status==='picked_up'?'<span class="tag green">HAS FLYERS — on route</span>'
+      :a.status==='accepted'?'<span class="tag green">ACCEPTED · awaiting flyer pickup</span>'
+      :a.status==='picked_up'?'<span class="tag green">HAS FLYERS · on route</span>'
       :'<span class="tag gray">REJECTED</span>';
     const btns=a.status==='applied'
       ?`<div class="row" style="margin-top:8px">
@@ -681,7 +681,7 @@ async function openCampaign(id){
       <b>${esc(a.profiles?.full_name)}</b> ${stTag}<br>
       ${a.flyers_assigned} flyers · ${done} verified × $${((c.pay_per_flyer_cents||0)/100).toFixed(2)} = <b style="color:var(--green)">$${owed.toFixed(2)} owed</b><br>
       ${ful}${btns}</div>`;
-  }).join('')||'No applications yet — workers see this job on their board once the campaign is Active.';
+  }).join('')||'No applications yet · workers see this job on their board once the campaign is Active.';
   // stops + scans + placements
   const [{data:stops},{data:scans},{data:plc}]=await Promise.all([
     sb.from('stops').select('*').eq('campaign_id',id).order('seq'),
@@ -693,16 +693,16 @@ async function openCampaign(id){
   $('d-kscans').textContent=(scans||[]).length;
   $('d-kplaced').textContent=`${(stops||[]).filter(s=>s.status!=='todo').length}/${(stops||[]).length}`;
   const top=(stops||[]).map(s=>({l:s.label,n:sc[s.id]||0})).sort((a,b)=>b.n-a.n)[0];
-  $('d-ktop').textContent=top&&top.n?`${top.l} · ${top.n}`:'—';
+  $('d-ktop').textContent=top&&top.n?`${top.l} · ${top.n}`:'-';
   const tb=$('t-stops').querySelector('tbody'); tb.innerHTML='';
   for(const s of stops||[]){
     const p=pm[s.id], img=p?await proofUrl(p.photo_path):null;
     tb.insertAdjacentHTML('beforeend',`<tr>
       <td><b>${esc(s.label)}</b></td>
       <td><span class="tag ${s.status==='verified'?'green':s.status==='placed'?'amber':s.status==='skipped'?'red':'gray'}">${s.status}</span></td>
-      <td>${esc(p?.structure_type||'—')}</td>
+      <td>${esc(p?.structure_type||'-')}</td>
       <td style="color:var(--green)">${sc[s.id]||0}</td>
-      <td>${img?`<img class="proof" src="${img}">`:'—'}</td></tr>`);
+      <td>${img?`<img class="proof" src="${img}">`:'-'}</td></tr>`);
   }
 }
 async function toggleStatus(){
@@ -721,7 +721,7 @@ async function setCampaignLetter(){
     const num=String(s.label).replace(/[A-Za-z]+$/,'');
     await sb.from('stops').update({label:num+L}).eq('id',s.id);
   }
-  toast('Campaign letter set to '+L+' — all stops relabeled');
+  toast('Campaign letter set to '+L+' · all stops relabeled');
   openCampaign(currentCampaign.id);
 }
 async function setAppStatus(appId,status){
@@ -734,7 +734,7 @@ async function setAppStatus(appId,status){
 async function downloadQRBatch(){
   const c=currentCampaign;
   const {data:stops}=await sb.from('stops').select('*').eq('campaign_id',c.id).order('seq');
-  if(!stops?.length)return toast('No pre-mapped stops — drop pins on the campaign map first');
+  if(!stops?.length)return toast('No pre-mapped stops · drop pins on the campaign map first');
   try{
     const zip=new JSZip(); let csv='label,qr_url\n';
     toast('Generating '+stops.length+' QR codes…');
@@ -768,7 +768,7 @@ function drawQR(ctx,text,x,y,size){
   for(let r=0;r<n;r++)for(let c=0;c<n;c++)
     if(qr.isDark(r,c)) ctx.fillRect(x+c*cell, y+r*cell, cell+0.5, cell+0.5);
 }
-const FLYER_URL='scans.ad'; // small URL printed on the flyer ID line — change to your real domain
+const FLYER_URL='SCANS.AD'; // printed on every flyer ID line
 let tagPos={x:0.02,y:0.965}; // ID line position, draggable to any corner
 function boxMetrics(canvas){
   const qrSize=Math.max(160,Math.round(canvas.width*qrBox.frac));
@@ -780,7 +780,7 @@ function tagMetrics(canvas,label){
   const ctx=canvas.getContext('2d');
   const fs=Math.max(11,Math.round(canvas.width*0.013));
   ctx.font=`${fs}px 'JetBrains Mono',monospace`;
-  const text=`${label} · ${FLYER_URL} · Taken down & recycled after 60 days`;
+  const text=`${label} · ${FLYER_URL} · removed + recycled after 60 days`;
   const padX=Math.round(fs*0.6), hgt=Math.round(fs*1.8);
   const w=Math.ceil(ctx.measureText(text).width)+padX*2;
   const x=Math.max(0,Math.min(canvas.width-w,Math.round(tagPos.x*canvas.width)));
@@ -796,7 +796,7 @@ function composeFlyer(stop,canvas,withHandle){
   ctx.fillStyle='#FFFFFF'; ctx.fillRect(m.x,m.y,m.qrSize,m.qrSize);
   const inset=Math.round(m.qrSize*0.05);
   drawQR(ctx,`${SCAN_FN_URL}?c=${currentCampaign.id}&s=${stop.id}`,m.x+inset,m.y+inset,m.qrSize-inset*2);
-  // single-line ID tag — draggable to any corner
+  // single-line ID tag · draggable to any corner
   const tm=tagMetrics(canvas,stop.label);
   ctx.fillStyle='#FFFFFF'; ctx.fillRect(tm.x,tm.y,tm.w,tm.h);
   ctx.strokeStyle='#000000'; ctx.lineWidth=Math.max(1,canvas.width*0.0012);
@@ -804,7 +804,7 @@ function composeFlyer(stop,canvas,withHandle){
   ctx.fillStyle='#000000'; ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.font=`${tm.fs}px 'JetBrains Mono',monospace`;
   ctx.fillText(tm.text,tm.x+tm.padX,tm.y+tm.h/2+1);
-  if(withHandle){ // editor chrome — preview only, never exported
+  if(withHandle){ // editor chrome · preview only, never exported
     ctx.strokeStyle='#AAFF00'; ctx.setLineDash([8,6]); ctx.lineWidth=Math.max(2,canvas.width*0.003);
     ctx.strokeRect(m.x,m.y,m.qrSize,m.qrSize);
     ctx.strokeRect(tm.x,tm.y,tm.w,tm.h); ctx.setLineDash([]);
@@ -819,13 +819,13 @@ function flyerLoaded(e){
   const img=new Image();
   img.onload=async()=>{
     flyerImg=img;
-    $('fb-status').textContent=`Design loaded — ${img.naturalWidth}×${img.naturalHeight}px`;
+    $('fb-status').textContent=`Design loaded · ${img.naturalWidth}×${img.naturalHeight}px`;
     const {data}=await sb.from('stops').select('*').eq('campaign_id',currentCampaign.id).order('seq').limit(1);
     previewStop=data?.[0]||null;
-    if(!previewStop)$('fb-status').textContent='No stops on this campaign — drop pins first';
+    if(!previewStop)$('fb-status').textContent='No stops on this campaign · drop pins first';
     flyerPreview();
   };
-  img.onerror=()=>toast('Could not read that image — use a PNG or JPG');
+  img.onerror=()=>toast('Could not read that image · use a PNG or JPG');
   img.src=URL.createObjectURL(f);
 }
 function flyerPreview(){
@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function downloadFlyerBatch(){
   if(!flyerImg)return toast('Upload your flyer design first');
   const {data:stops}=await sb.from('stops').select('*').eq('campaign_id',currentCampaign.id).order('seq');
-  if(!stops?.length)return toast('No stops — this campaign has no pins yet');
+  if(!stops?.length)return toast('No stops · this campaign has no pins yet');
   try{
     const zip=new JSZip(), cv=document.createElement('canvas');
     let csv='label,qr_url\n';
@@ -936,14 +936,14 @@ async function renderAnalytics(){
     const share=n/max;
     const tag=n===0?'UNSCANNED':share>=0.6?'🔥 HOT':share>=0.25?'WARM':'COLD';
     return {label:s.label,lat:s.lat,lng:s.lng,scans:n,convs:k,
-      rate:n?+(k/n*100).toFixed(1):0,tag,structure:st[s.id]||'—'};
+      rate:n?+(k/n*100).toFixed(1):0,tag,structure:st[s.id]||'-'};
   });
   // KPIs
   $('an-scans').textContent=totScans;
   $('an-convs').textContent=convRes.error?'run mig. 4':totConvs;
-  $('an-rate').textContent=totScans?((totConvs/totScans*100).toFixed(1)+'%'):'—';
+  $('an-rate').textContent=totScans?((totConvs/totScans*100).toFixed(1)+'%'):'-';
   const top=[...anRows].sort((a,b)=>b.scans-a.scans)[0];
-  $('an-top').textContent=top&&top.scans?`${top.label} · ${top.scans}`:'—';
+  $('an-top').textContent=top&&top.scans?`${top.label} · ${top.scans}`:'-';
   // heat + points on the map
   const geo={type:'FeatureCollection',features:anRows.filter(r=>r.lat!=null).map(r=>({
     type:'Feature',geometry:{type:'Point',coordinates:[r.lng,r.lat]},
@@ -1026,7 +1026,7 @@ function renderFeed(){
       <span style="flex:1">scan</span>
       <span class="sub">${new Date(s.scanned_at).toLocaleTimeString()} · ${ago(s.scanned_at)}</span>
     </div>`).join('')
-    :'<span class="sub">No real scans yet — worker verification scans are excluded.</span>';
+    :'<span class="sub">No real scans yet · worker verification scans are excluded.</span>';
 }
 
 /* ── PAYOUTS ── */
@@ -1045,7 +1045,7 @@ async function loadPayouts(){
     const e=earned[w.id]||0, pd=paidc[w.id]||0, bal=e-pd;
     tb.insertAdjacentHTML('beforeend',`<tr>
       <td><b>${esc(w.full_name||'(no name)')}</b></td>
-      <td>${esc(w.legal_name||'—')}</td>
+      <td>${esc(w.legal_name||'-')}</td>
       <td>${w.pay_method?esc(w.pay_method)+' · '+esc(w.pay_handle||''):'<span class="tag amber">not set</span>'}</td>
       <td>${count[w.id]||0}</td>
       <td>$${(e/100).toFixed(2)}</td><td>$${(pd/100).toFixed(2)}</td>
@@ -1084,12 +1084,12 @@ function trackerCore(){
     }catch(e){}
   };
   document.addEventListener("click",function(e){
-    if(e.target&&e.target.closest&&e.target.closest("[data-scanmap-convert]"))window.scanmapConvert();
+    if(e.target&&e.target.closest&&e.target.closest("[data-SCANS.AD-convert]"))window.scanmapConvert();
   },true);
   document.addEventListener("submit",function(e){
-    if(e.target&&e.target.matches&&e.target.matches("form[data-scanmap-convert]"))window.scanmapConvert();
+    if(e.target&&e.target.matches&&e.target.matches("form[data-SCANS.AD-convert]"))window.scanmapConvert();
   },true);
-  function ty(){if(document.body&&document.body.hasAttribute("data-scanmap-thankyou"))window.scanmapConvert();}
+  function ty(){if(document.body&&document.body.hasAttribute("data-SCANS.AD-thankyou"))window.scanmapConvert();}
   document.readyState==="loading"?document.addEventListener("DOMContentLoaded",ty):ty();
 })();`;
 }
@@ -1099,13 +1099,13 @@ function fillConvSetup(){
   $('cv-snip').textContent='<scr'+'ipt>\n'+trackerCore()+'\n</scr'+'ipt>';
 }
 async function copySnippet(){
-  try{await navigator.clipboard.writeText($('cv-snip').textContent);toast('Snippet copied — paste before </body>');}
-  catch(e){toast('Copy failed — select the text manually');}
+  try{await navigator.clipboard.writeText($('cv-snip').textContent);toast('Snippet copied · paste before </body>');}
+  catch(e){toast('Copy failed · select the text manually');}
 }
 function downloadTracker(){
-  const blob=new Blob(['/* ScanMap conversion tracker — include with <scr'+'ipt src="scanmap-tracker.js"></scr'+'ipt> */\n'+trackerCore()],
+  const blob=new Blob(['/* SCANS.AD conversion tracker · include with <scr'+'ipt src="scansad-tracker.js"></scr'+'ipt> */\n'+trackerCore()],
     {type:'text/javascript'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scanmap-tracker.js';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='scansad-tracker.js';a.click();
 }
 
 /* ── WORKERS ── */
