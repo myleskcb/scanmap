@@ -104,6 +104,10 @@
     <div id="a-msg" class="sub" style="margin-top:12px;color:var(--amber)"></div>
   </div>
   <div class="sub" style="margin-top:14px">New accounts start as field workers. Promote your own account to admin once · instructions in SETUP-GUIDE.md.</div>
+  <div id="partner-auth-note" class="card hide" style="margin-top:14px;border-color:var(--green)">
+    <div class="mono" style="font-size:12px;line-height:1.7"><b style="color:var(--green)">🎨 GRAPHICS STUDIO HANDOFF</b><br>
+    Your ad design is saved in this browser. Sign in (or create an account) and it wires itself into a new campaign — name, landing page and flyer artwork included.</div>
+  </div>
 </div>
 
 <!-- ══════════ APP SHELL ══════════ -->
@@ -122,11 +126,18 @@
     <button onclick="sb.auth.signOut().then(()=>location.reload())">Sign out</button>
   </div>
 
+  <div id="partner-banner" class="hide" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 24px;background:linear-gradient(90deg,rgba(170,255,0,.10),transparent);border-bottom:1px solid var(--green)">
+    <span class="mono" style="font-size:12px" id="pb-text">🎨 Artwork received from Graphics Studio</span>
+    <button class="primary" style="padding:6px 12px;font-size:11px" onclick="startPartnerCampaign()">Start the campaign →</button>
+    <button style="padding:6px 10px;font-size:11px" onclick="clearPartnerDraft(true)">Dismiss</button>
+  </div>
+
   <main>
     <!-- DASHBOARD -->
     <section id="v-dash">
       <h1>Mission control</h1>
       <div class="sub"><span class="dot"></span> live · scans exclude worker verification scans</div>
+      <div class="sub hide" id="gfx-link" style="margin-top:8px">🎨 <a href="#" target="_blank" rel="noopener" style="color:var(--green)">Design your flyers in Graphics Studio →</a></div>
       <div class="kpis">
         <div class="kpi"><div class="num" id="k-scans">-</div><div class="lbl">Real scans (all time)</div></div>
         <div class="kpi"><div class="num" id="k-active">-</div><div class="lbl">Active campaigns</div></div>
@@ -430,7 +441,7 @@ async function boot(){
   me=prof;
   $('auth').classList.add('hide');$('app').classList.remove('hide');
   $('whoami').textContent=prof.full_name||user.email;
-  loadDash(); subscribeLive();
+  loadDash(); subscribeLive(); partnerAfterLogin();
 }
 
 /* ── NAV ── */
@@ -440,7 +451,7 @@ function go(v){
   $('v-'+v).classList.remove('hide');
   if(v==='dash')loadDash(); if(v==='camps')loadCamps(); if(v==='workers')loadWorkers(); if(v==='payouts')loadPayouts();
   if(v==='analytics'){loadAnalyticsView();fillConvSetup();}
-  if(v==='new'){wStep=1;delete $('c-letter').dataset.filled;wShow();calcEcon();}
+  if(v==='new'){wStep=1;delete $('c-letter').dataset.filled;wShow();calcEcon();prefillFromPartner();}
 }
 
 /* ── DASHBOARD ── */
@@ -625,6 +636,7 @@ async function saveCampaign(){
     const {error:e2}=await sb.from('stops').insert(rows); if(e2)return toast(e2.message);
   }
   newPins.forEach(p=>p.mk.remove()); newPins=[]; renderPinList();
+  _partnerAttachNext=!!readPartnerDraft();   // Graphics Studio artwork auto-attaches on the detail page
   toast('Campaign saved'); openCampaign(camp.id);
 }
 
@@ -635,6 +647,7 @@ async function openCampaign(id){
   document.querySelectorAll('main>section').forEach(s=>s.classList.add('hide'));
   $('v-detail').classList.remove('hide');
   $('d-name').textContent=c.name;
+  if(_partnerAttachNext){_partnerAttachNext=false;setTimeout(attachPartnerArtwork,60);}
   const n=c.flyer_count||1;
   const payT=(c.pay_per_flyer_cents||0)*n, cogsT=(c.cogs_per_flyer_cents||0)*n, profT=c.price_cents-payT-cogsT;
   $('d-meta').innerHTML=`<span class="tag green">CAMPAIGN ${esc(c.letter||'A')}</span> · ${c.client_type} · ${c.mode} · ${c.flyer_count} flyers
@@ -1124,6 +1137,117 @@ async function loadWorkers(){
     <td style="color:var(--green)">$${((ec[w.id]||0)/100).toFixed(2)}</td>
     <td>${ac[w.id]||0}</td>
     <td>${new Date(w.created_at).toLocaleDateString()}</td></tr>`));
+}
+
+/* ── PARTNER INTAKE · Graphics Studio (BUYBACK.AD) handoff ──
+   Inert unless the page opens with ?partner=buybackad or a postMessage arrives
+   from an origin listed in PARTNER_ORIGINS (config.js). Artwork travels
+   tab-to-tab — no shared backend, so ScanMap stays 100% standalone. */
+const PARTNERS=(typeof PARTNER_ORIGINS!=='undefined'&&Array.isArray(PARTNER_ORIGINS))?PARTNER_ORIGINS:[];
+let _partnerAttachNext=false,_partnerHello=null;
+function readPartnerDraft(){try{return JSON.parse(localStorage.getItem('sm_partner_draft')||'null');}catch(e){return null;}}
+function writePartnerDraft(d){try{localStorage.setItem('sm_partner_draft',JSON.stringify(d));}catch(e){}}
+async function clearPartnerDraft(manual){
+  localStorage.removeItem('sm_partner_draft');
+  try{await partnerPut('artwork',null);}catch(e){}
+  $('partner-banner').classList.add('hide');
+  if(manual)toast('Handoff dismissed · the wizard works as usual');
+}
+function partnerIdb(){return new Promise((res,rej)=>{const r=indexedDB.open('scansad-partner',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function partnerPut(k,v){const db=await partnerIdb();return new Promise((res,rej)=>{
+  const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+async function partnerGet(k){const db=await partnerIdb();return new Promise((res,rej)=>{
+  const tx=db.transaction('kv','readonly');const g=tx.objectStore('kv').get(k);g.onsuccess=()=>res(g.result);g.onerror=()=>rej(g.error);});}
+function partnerCleanDest(u){ // https-only, never a SCANS.AD tracking link (scan loop)
+  u=String(u||'');
+  return (/^https?:\/\//i.test(u)&&!/functions\/v1\/scan/.test(u))?u:'';
+}
+(function partnerBoot(){
+  const q=new URLSearchParams(location.search);
+  // PARTNER_ORIGINS empty = the whole intake is OFF, params included
+  if(PARTNERS.length&&q.get('partner')==='buybackad'){
+    try{localStorage.setItem('sm_gfx_member','1');}catch(e){} // handoff = proof this browser uses Graphics Studio
+    writePartnerDraft({name:String(q.get('name')||'').slice(0,120),fmt:q.get('fmt')||'',w:+q.get('w')||0,h:+q.get('h')||0,
+      qrpos:q.get('qrpos')||'',dest:partnerCleanDest(q.get('dest')),art:false,ts:Date.now()});
+    partnerPut('artwork',null).catch(()=>{}); // a fresh handoff never inherits stale artwork
+    if(window.opener){ // announce readiness until the artwork lands (or we give up)
+      let tries=0;
+      _partnerHello=setInterval(()=>{if(++tries>24){clearInterval(_partnerHello);return;}
+        try{window.opener.postMessage({type:'scansad:ready'},'*');}catch(e){clearInterval(_partnerHello);}},250);
+    }
+    // strip the params so a reload can't resurrect a completed/dismissed handoff
+    try{history.replaceState(null,'',location.pathname);}catch(e){}
+  }
+  if(readPartnerDraft())$('partner-auth-note').classList.remove('hide');
+})();
+window.addEventListener('message',async e=>{
+  if(!PARTNERS.includes(e.origin))return;             // trusted partner domains only
+  const m=e.data;
+  if(!m||m.type!=='buybackad:artwork'||typeof m.png!=='string')return;
+  const nack=r=>{try{e.source.postMessage({type:'scansad:artwork-rejected',reason:r},e.origin);}catch(err){}};
+  if(!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(m.png))return nack('not a PNG');
+  if(m.png.length>64000000)return nack('file too large');
+  if(_partnerHello)clearInterval(_partnerHello);
+  try{localStorage.setItem('sm_gfx_member','1');}catch(err){} // trusted-origin artwork = proof of Graphics Studio use
+  try{await partnerPut('artwork',m.png);}catch(err){toast('Could not store the artwork: '+err.message);return nack('storage failed');}
+  const meta=(m.meta&&typeof m.meta==='object')?m.meta:{};
+  const prev=readPartnerDraft()||{};
+  const d=Object.assign(prev,{
+    name:String(meta.name||'').slice(0,120)||prev.name||'',
+    fmt:String(meta.fmt||''),w:+meta.w||0,h:+meta.h||0,
+    qrpos:String(meta.qrpos||''),dest:partnerCleanDest(meta.dest)||prev.dest||'',art:true,ts:Date.now()});
+  writePartnerDraft(d);
+  partnerBanner(d);
+  try{e.source.postMessage({type:'scansad:artwork-received'},e.origin);}catch(err){} // confirm so gfx stops its download fallback
+  toast('🎨 Artwork received from Graphics Studio');
+});
+function partnerBanner(d){
+  if(!d){$('partner-banner').classList.add('hide');return;}
+  const dims=(d.w&&d.h)?' · '+d.w+'×'+d.h+'px':'';
+  $('pb-text').textContent='🎨 '+(d.name||'Your ad')+dims+(d.art?' · artwork attached':' · artwork uploads at the flyer step');
+  if(!$('app').classList.contains('hide'))$('partner-banner').classList.remove('hide');
+}
+function partnerAfterLogin(){
+  const d=readPartnerDraft();if(d)partnerBanner(d);
+  // Graphics Studio dashboard link: only for browsers with PROOF of a Graphics
+  // Studio handoff (member of both platforms) — everyone else never sees it
+  let gfxMember=false; try{gfxMember=localStorage.getItem('sm_gfx_member')==='1';}catch(e){}
+  const gl=$('gfx-link');
+  if(gl&&gfxMember&&PARTNERS.length&&typeof PARTNER_GFX_URL!=='undefined'&&PARTNER_GFX_URL){
+    gl.querySelector('a').href=String(PARTNER_GFX_URL).replace(/\/+$/,'')+'/?scansad=member';
+    gl.classList.remove('hide');
+  }
+}
+function startPartnerCampaign(){go('new');}
+function prefillFromPartner(){
+  const d=readPartnerDraft();if(!d)return;
+  if(d.name&&!$('c-name').value.trim())$('c-name').value=d.name;
+  const dest=partnerCleanDest(d.dest);
+  if(dest&&!$('c-url').value.trim())$('c-url').value=dest;
+  toast('Prefilled from Graphics Studio · artwork attaches once the campaign is created');
+}
+async function attachPartnerArtwork(){
+  const d=readPartnerDraft();
+  // trust the draft's art flag — leftover IndexedDB artwork from an EARLIER
+  // handoff must never silently attach to an unrelated campaign
+  const art=(d&&d.art)?await partnerGet('artwork').catch(()=>null):null;
+  if(!art){if(d)toast('Upload the PNG you downloaded from Graphics Studio in the flyer generator below');return;}
+  const img=new Image();
+  img.onload=async()=>{
+    flyerImg=img;
+    const corner={'top-left':'tl','top-right':'tr','bottom-left':'bl','bottom-right':'br'}[d&&d.qrpos];
+    if(corner){$('fb-pos').value=corner;setCorner(corner);}
+    const {data}=await sb.from('stops').select('*').eq('campaign_id',currentCampaign.id).order('seq').limit(1);
+    previewStop=data?.[0]||null;
+    $('fb-status').textContent='Graphics Studio artwork attached · '+img.naturalWidth+'×'+img.naturalHeight+'px'
+      +(previewStop?'':' · no pins yet — the QR batch needs stops');
+    flyerPreview();
+    toast('Artwork wired into the flyer generator · tracked QR sits '+(d&&d.qrpos?d.qrpos.replace('-',' '):'bottom right'));
+    clearPartnerDraft();
+  };
+  img.onerror=()=>toast('Stored artwork could not be decoded · upload it manually');
+  img.src=art;
 }
 
 /* boot on load if a session exists */
